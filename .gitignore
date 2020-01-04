@@ -1,0 +1,4 @@
+.env
+src/autoload
+boot/startup.php
+public/
