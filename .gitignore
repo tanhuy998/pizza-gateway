@@ -1,5 +1,9 @@
 .env
 
+src/dependencies/
+
+src/Application/injection
+
 boot/startup.php
 
 public/
