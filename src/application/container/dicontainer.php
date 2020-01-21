@@ -4,23 +4,31 @@
     use Application\Container\IContainer as IContainer;
     use Application\Container\Exception as Exception;
     use Application\Container\Dependency as Dependency;
-    use ReflectionClass;
 
-/**
+    /**
      * DIContiner class define a container that stores dependencies
      * for the Dependencies Injector 
      */
     class DIContainer implements Icontainer{
+        /**
+         *  all dependencies which is bound with classes
+         */
+        private $dependenciesList;
 
         /**
-         *  Property $classList stores the registered classes for the container
+         *  all classes that is mapped to dependencies list
          */
         private $classList;
 
         /**
-         *  Property $interfaceList stores the registered interfaces that is bound to specific classes
+         *  all interfaces that is mapped to dependencies list
          */
         private $interfaceList;
+
+        /**
+         *  
+         */
+        private $nameList;
 
         /**
          * Property $objectPool stores classes/interfaces that is registered as singleton 
@@ -28,6 +36,8 @@
         private $objectPool;
 
         public function __construct() {
+            $this->nameList = [];
+            $this->dependenciesList = [];
             $this->classList = [];
             $this->interfaceList = [];
             $this->objectPool = [];
@@ -39,7 +49,19 @@
          * @return void
          */
         public function BindClass($_class) {
-            $this->classList[$_class] = new Dependency($_class, $this);
+
+            if ($this->ClassIsBound($_class)) throw new Exception\ClassExistsException($_class);
+
+            if (!isset($this->classList[$_class])) {
+
+                $this->dependenciesList[] = new Dependency($_class, $this);
+
+                $index = count($this->dependenciesList) - 1;
+
+                $this->classList[$_class] = $this->dependenciesList[$index];
+
+                return $this->classList[$_class];
+            }
         }
 
         /**
@@ -50,12 +72,61 @@
          * @return void
          */
         public function BindInterface($_interface, $_class) {
-            $this->interfaceList[$_interface] = new Dependency($_class, $this);
+
+            if ($this->ClassIsBound($_class)) throw new Exception\ClassExistsException($_class);
+
+            if (!isset($this->interfaceList[$_interface])) {
+
+                $this->dependenciesList[] = new Dependency($_class, $this);
+
+                $index = count($this->dependenciesList) - 1;
+
+                $this->interfaceList[$_interface] = $this->dependenciesList[$index];
+
+                return $this->interfaceList[$_interface];
+            }
+            
+        }
+
+        /**
+         * function that binds a name with a dependency of a class
+         * @param string $_name
+         * @param Application\Container\Dependency
+         */
+        public function BindName(string $_name, Dependency &$_dependency) {
+
+            if (!isset($this->nameList[$_name])) {
+                $this->nameList[$_name] = $_dependency;
+
+                return true;
+            }
+
+            throw new Exception\NameExistsException($_name);
+        }
+
+        /**
+         * Function to check a class is bound before
+         * @param string $_class 
+         * @return bool
+         */
+        private function ClassIsBound(string $_class): bool {
+
+            $search_result = array_filter($this->dependenciesList, function($var) use($_class) {
+                if ($var->GetClass() == $_class) {
+                    return $var;
+                }
+            });
+
+            if (count($search_result) > 0) {
+                return true;
+            }
+
+            return false;
         }
 
         /**
          * function that bind a dependency to a singleton object in object pool
-         * @param Dependency $_dependency
+         * @param Application\Container\Dependency $_dependency
          * @return int the address of the allocated object
          */
         public function BindSingleton(Dependency $_dependency) {
@@ -72,7 +143,12 @@
             
         }
 
-        private function GetObjectByAddress($_address) {
+        /**
+         *  Get object in object pool by address
+         *  @param int $_address;
+         *  @return object
+         */
+        private function GetObjectByAddress(int $_address) {
             $object = $this->objectPool[$_address];
 
             if(isset($object)) {
@@ -81,46 +157,70 @@
             
             return false;
         }
-        
+
         /**
-         * @param string $_class
-         * @return object 
+         *  
+         *  @param Application\Container\Dependency
+         *  @return object
          */
-        public function GetClassInstance($_class) {
+        private function ResolveDependency(Dependency $_dependency) {
+            if ($_dependency->IsSingleton()) {
+
+                $address = $_dependency->GetSingletonAddress();
+                $object = $this->GetObjectByAddress($address);
+                
+                return $object;
+            }
+
+            return $_dependency->Build();
+        }
+
+        /**
+         *  Get a class bound dependency
+         *  @param string $_class
+         *  @return object 
+         */
+        public function GetClassInstance(string $_class) {
             $dependency = $this->classList[$_class];
 
             if (isset($dependency)) {
-                if ($dependency->IsSingleton()) {
-                    $address = $dependency->GetSingletonAddress();
-                    $object = $this->GetObjectByAddress($address);
 
-                    return $object;
-                }
-
-                return $dependency->GetInstance();
+                return $this->ResolveDependency($dependency);
             }
             
             throw new Exception\ClassNotBoundException($_class);
         }
 
-        public function GetInterfaceInstance($_interface) {
+        
+
+        /** 
+         *  Get a interface bound dependency
+         *  @param string $_interface
+         *  @return object 
+         */
+        public function GetInterfaceInstance(string $_interface) {
             $dependency = $this->interfaceList[$_interface];
 
             if (isset($dependency)) {
-                if ($dependency->IsSingleton()) {
-                    $address = $dependency->GetSingletonAddress();
-                    $object = $this->GetObjectByAddress($address);
 
-                    return $object;
-                }
-
-                return $dependency->GetInstance();
+                return $this->ResolveDependency($dependency);
+            
             }
 
             throw new Exception\InterfaceNotBoundException($_interface);
         }
 
+        /** 
+         *  Get a named dependency
+         *  @param string $_name
+         *  @return object
+         */
         public function GetInstance(string $_name) {
-            
+            $dependency = $this->nameList[$_name];
+
+            if (isset($dependency)) {
+
+                return $this->ResolveDependency($dependency);
+            }
         }
     }
