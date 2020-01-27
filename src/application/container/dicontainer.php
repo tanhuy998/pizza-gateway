@@ -4,12 +4,16 @@
     use Application\Container\IContainer as IContainer;
     use Application\Container\Exception as Exception;
     use Application\Container\Dependency as Dependency;
+use Exception as GlobalException;
+use ReflectionObject;
 
-    /**
+/**
      * DIContiner class define a container that stores dependencies
      * for the Dependencies Injector 
      */
     class DIContainer implements Icontainer{
+        const INSTANCIATE = 1;
+
         /**
          *  all dependencies which is bound with classes
          */
@@ -101,7 +105,7 @@
                 return true;
             }
 
-            throw new Exception\NameExistsException($_name);
+            throw new Exception\AliasNameExistsException($_name);
         }
 
         /**
@@ -111,10 +115,13 @@
          */
         private function ClassIsBound(string $_class): bool {
 
-            $search_result = array_filter($this->dependenciesList, function($var) use($_class) {
+            $search_result = array_filter($this->dependenciesList, 
+            function($var) use($_class) {
+
                 if ($var->GetClass() == $_class) {
                     return $var;
                 }
+
             });
 
             if (count($search_result) > 0) {
@@ -126,13 +133,21 @@
 
         /**
          * function that bind a dependency to a singleton object in object pool
-         * @param Application\Container\Dependency $_dependency
+         * @param Application\container\Dependency 
+         * @param object
          * @return int the address of the allocated object
          */
-        public function BindSingleton(Dependency $_dependency) {
+        public function BindSingleton(Dependency $_dependency, &$_object = null) {
 
             if (!$_dependency->IsSingleton()) {
-                $object = $_dependency->GetInstance();
+
+                $object = $_object ?? $_dependency->Build();
+
+                $object_reflector = new ReflectionObject($object);
+
+                if ($_dependency->GetClass() != $object_reflector->getName()) {
+                    throw new Exception\ObjectTypeNotMatchException($_dependency->GetClass(), $object_reflector->getName());
+                }
 
                 $this->objectPool[] = $object;
     
@@ -178,14 +193,19 @@
         /**
          *  Get a class bound dependency
          *  @param string $_class
+         *  @param int 
          *  @return object 
          */
-        public function GetClassInstance(string $_class) {
+        public function GetClass(string $_class, $_instanciate = 0) {
             $dependency = $this->classList[$_class];
 
             if (isset($dependency)) {
 
-                return $this->ResolveDependency($dependency);
+                if ($_instanciate === 1) {
+                    return $this->ResolveDependency($dependency);
+                }
+                
+                return $dependency;
             }
             
             throw new Exception\ClassNotBoundException($_class);
@@ -196,15 +216,18 @@
         /** 
          *  Get a interface bound dependency
          *  @param string $_interface
+         *  @param int
          *  @return object 
          */
-        public function GetInterfaceInstance(string $_interface) {
+        public function GetInterface(string $_interface, $_instanciate = 0) {
             $dependency = $this->interfaceList[$_interface];
 
             if (isset($dependency)) {
-
-                return $this->ResolveDependency($dependency);
-            
+                if ($_instanciate === 1) {
+                    return $this->ResolveDependency($dependency);
+                }
+                
+                return $dependency;
             }
 
             throw new Exception\InterfaceNotBoundException($_interface);
@@ -213,14 +236,20 @@
         /** 
          *  Get a named dependency
          *  @param string $_name
+         *  @param int 
          *  @return object
          */
-        public function GetInstance(string $_name) {
+        public function Get(string $_name, $_instanciate = 0) {
             $dependency = $this->nameList[$_name];
 
             if (isset($dependency)) {
-
-                return $this->ResolveDependency($dependency);
+                if ($_instanciate === 1) {
+                    return $this->ResolveDependency($dependency);
+                }
+                
+                return $dependency;
             }
+
+            throw new Exception\AliasNameNotRegisteredException($_name);
         }
     }

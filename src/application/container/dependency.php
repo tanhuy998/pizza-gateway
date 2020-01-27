@@ -79,12 +79,13 @@
 
         /**
          *  register this dependency as singleton
+         *  @param object reference to object to bind as singleton
          */
-        public function AsSingleton() {
+        public function AsSingleton(&$_object = null) {
             //$obj = $this->GetInstance();
 
             if (!$this->IsSingleton()) {
-                $_address = $this->container->BindSingleton($this);
+                $_address = $this->container->BindSingleton($this, $_object);
 
                 $this->singleton = new stdClass();
                 $this->SetSingletonAddress($_address);

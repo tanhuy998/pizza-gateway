@@ -10,9 +10,11 @@
 
     //$obj = $con->GetClassInstance(\Dependencies\Http\HttpHandler::class);
 
-    $con->BindInterface('http', Dependencies\Http\HttpHandler::class)->AsSingleton()->name('h');
+    $handler = new Dependencies\Http\HttpHandler('3');
 
-    $obj = $con->GetInstance('h');
+    $con->BindInterface('http', Dependencies\Http\HttpHandler::class)->AsSingleton($handler)->name('h');
+
+    $obj = $con->Get('h', Container::INSTANCIATE);
     $obj->ParseUri();
 
     
