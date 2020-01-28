@@ -12,7 +12,7 @@ use ReflectionObject;
      * for the Dependencies Injector 
      */
     class DIContainer implements Icontainer{
-        const INSTANCIATE = 1;
+        const INSTANTIATE = 1;
 
         /**
          *  all dependencies which is bound with classes
@@ -196,12 +196,12 @@ use ReflectionObject;
          *  @param int 
          *  @return object 
          */
-        public function GetClass(string $_class, $_instanciate = 0) {
+        public function GetClass(string $_class, $_instantiate = 0) {
             $dependency = $this->classList[$_class];
 
             if (isset($dependency)) {
 
-                if ($_instanciate === 1) {
+                if ($_instantiate === 1) {
                     return $this->ResolveDependency($dependency);
                 }
                 
@@ -219,11 +219,11 @@ use ReflectionObject;
          *  @param int
          *  @return object 
          */
-        public function GetInterface(string $_interface, $_instanciate = 0) {
+        public function GetInterface(string $_interface, $_instantiate = 0) {
             $dependency = $this->interfaceList[$_interface];
 
             if (isset($dependency)) {
-                if ($_instanciate === 1) {
+                if ($_instantiate === 1) {
                     return $this->ResolveDependency($dependency);
                 }
                 
@@ -239,11 +239,11 @@ use ReflectionObject;
          *  @param int 
          *  @return object
          */
-        public function Get(string $_name, $_instanciate = 0) {
+        public function Get(string $_name, $_instantiate = 0) {
             $dependency = $this->nameList[$_name];
 
             if (isset($dependency)) {
-                if ($_instanciate === 1) {
+                if ($_instantiate === 1) {
                     return $this->ResolveDependency($dependency);
                 }
                 
