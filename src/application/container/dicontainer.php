@@ -196,7 +196,7 @@ use ReflectionObject;
          *  @param int 
          *  @return object 
          */
-        public function GetClass(string $_class, $_instantiate = 0) {
+        public function GetClass(string $_class, $_instantiate = self::INSTANTIATE) {
             $dependency = $this->classList[$_class];
 
             if (isset($dependency)) {
@@ -219,7 +219,7 @@ use ReflectionObject;
          *  @param int
          *  @return object 
          */
-        public function GetInterface(string $_interface, $_instantiate = 0) {
+        public function GetInterface(string $_interface, $_instantiate = self::INSTANTIATE) {
             $dependency = $this->interfaceList[$_interface];
 
             if (isset($dependency)) {
@@ -239,7 +239,7 @@ use ReflectionObject;
          *  @param int 
          *  @return object
          */
-        public function Get(string $_name, $_instantiate = 0) {
+        public function Get(string $_name, $_instantiate = self::INSTANTIATE) {
             $dependency = $this->nameList[$_name];
 
             if (isset($dependency)) {

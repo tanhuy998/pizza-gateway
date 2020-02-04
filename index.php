@@ -8,14 +8,17 @@
 
     //$con->BindClass(Dependencies\Http\HttpHandler::class);
 
-    //$obj = $con->GetClassInstance(\Dependencies\Http\HttpHandler::class);
+    // $obj = $con->GetClassInstance(\Dependencies\Http\HttpHandler::class);
 
-    $handler = new Dependencies\Http\HttpHandler('3');
+    // $handler = new Dependencies\Http\HttpHandler('3');
 
-    $con->BindInterface('http', Dependencies\Http\HttpHandler::class)->AsSingleton($handler)->name('h');
+    $con->BindInterface('http', Dependencies\Http\Request::class)->AsSingleton($handler)->name('h');
 
-    $obj = $con->Get('h', Container::INSTANCIATE);
-    $obj->ParseUri();
+    $obj = $con->Get('h', Container::INSTANTIATE);
+
+    $request = $obj->Request();
+
+    echo $request->fullurl();
 
     
-
+    
