@@ -1,6 +1,6 @@
 .env
 
-src/dependencies/
+src/dependencies/router
 
 src/Application/injection
 
