@@ -1,7 +1,5 @@
 .env
 
-src/dependencies/router
-
 src/Application/injection
 
 boot/startup.php
