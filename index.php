@@ -3,10 +3,10 @@
     include __DIR__.'/src/autoload/autoload.php';
 
     use Application\Container\DIContainer as Container;
-use Dependencies\Http\Request;
-use Dependencies\Router\Router as Router;
+    use Dependencies\Http\Request;
+    use Dependencies\Router\Router as Router;
     use Dependencies\Router\Route as Route;
-    
+    use Dependencies\HttpHandler\HttpHandler as HttpHandler;
     $con = new Container();
 
     //$con->BindClass(Dependencies\Http\HttpHandler::class);
@@ -25,24 +25,16 @@ use Dependencies\Router\Router as Router;
     $pattern = '/asdasd/b/xc/';
     //$router->StandardizePattern($pattern);
 
-    $router->get('test/{i}', 'abc:jjnm');
-    $request = new Request();
+    $router->put('test', 'abc:jjnm');
+    $http = new HttpHandler();
+    $request = $http->Request();
 
     $var = $router->handle($request);
     var_dump($var);
     //echo SubRootDir();
+
+    
 ?>
 
-<!DOCTYPE html>
-<html>
-    <head>
-    </head>
-    <body>
-        <form action="/mvc/test?a=123" method="post">
-            <input type="text" value="" name="text">
-            <input type="submit" value="1" name="sub">
-        </form>
-    </body>
-</html>
     
     

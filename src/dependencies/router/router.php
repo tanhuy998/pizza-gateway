@@ -3,6 +3,8 @@
 
     use Dependencies\Router\Route as Route;
     use Dependencies\Http\Request as Request;
+    use Dependencies\Http\Respone as Respone;
+use Dependencies\Middleware\Middleware as Middleware;
 
 use Exception;
 
@@ -135,13 +137,46 @@ class Router {
             $route_list = $this->ResolveMethod($request_method);
 
             $request_path = SubRootDir() != '' ? str_replace(SubRootDir().'/', '', $_request->Path()) : $_request->path();
+
+            $direct_route = null;
             
             foreach ($route_list as $pattern => $route) {
                 if ($this->PatternMatch($request_path, $pattern)) {
 
-                    return $route;
+                    $direct_route = $route;
                 }
             }
+
+            return $this->ResolveRoute($direct_route);
+        }
+
+        /**
+         *  resolve a spicific route
+         *  @param Route
+         *  @return Respone
+         */
+        public function ResolveRoute(Route $_route) {
+
+            $middleware_chain = $_route->Middleware();
+
+            $respone = new Respone();
+            
+            foreach ($middleware_chain as $middleware) {
+                $this->HandleMiddleware($middleware);
+            }
+
+            return new $respone;
+        }
+
+        public function HandleMiddleware($_middleware) {
+            if (is_callable($_middleware)) {
+
+                return;
+            }
+
+            if ($_middleware instanceof Middleware) {
+                $_middleware->Exec($request, $respoone);
+            }    
         }
 
         private function ResolveMethod($_method) {
