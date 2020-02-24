@@ -118,16 +118,19 @@ use stdClass;
          *  @param int
          */
         public function SetSingletonAddress(int $_address) {
-            $this->singleton = $_address;
+            $this->address = $_address;
         }
 
         /**
          *  return the singleton address for container
          */
         public function GetSingletonAddress() {
-            return $this->singleton;
+            return $this->address;
         }
 
+        public function Defalut(Closure $_function) {
+            
+        }
 
         public function GetClass() {
             return $this->class;

@@ -36,9 +36,9 @@ use Dependencies\Http\Request as Request;
 
     };
     //echo SubRootDir();
-
+    
     $a = $func();
-    var_dump($res);
+    echo '<pre>',var_dump($test), '</pre>';
 ?>
 
     
