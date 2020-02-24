@@ -3,37 +3,42 @@
     include __DIR__.'/src/autoload/autoload.php';
 
     use Application\Container\DIContainer as Container;
-    use Dependencies\Http\Request;
+use Application\Container\DIContainer;
+use Dependencies\Http\Request as Request;
     use Dependencies\Router\Router as Router;
     use Dependencies\Router\Route as Route;
     use Dependencies\HttpHandler\HttpHandler as HttpHandler;
+
+    class A {
+        public $res;
+
+        public function __construct(Request $res)
+        {
+            $this->res = $res;
+        }
+    }
+
     $con = new Container();
 
-    //$con->BindClass(Dependencies\Http\HttpHandler::class);
+    $container = new DIContainer();
 
-    // $obj = $con->GetClassInstance(\Dependencies\Http\HttpHandler::class);
+    $container->BindSingleton(Request::class, Request::class, function() {
+        return new Request('POST');
+    });
 
-    // $handler = new Dependencies\Http\HttpHandler('3');
+    $res = $container->Get(Request::class);
+    
+    echo $res->do = 123;
 
-    // $con->BindInterface('http', Dependencies\Http\Request::class)->name('h');
+    $test = $container->Make(A::class);
+   
+    $func = function() {
 
-    // $request = $con->Get('h', Container::INSTANTIATE);
-
-    // echo $request->method();
-
-    $router = new Router();
-    $pattern = '/asdasd/b/xc/';
-    //$router->StandardizePattern($pattern);
-
-    $router->put('test', 'abc:jjnm');
-    $http = new HttpHandler();
-    $request = $http->Request();
-
-    $var = $router->handle($request);
-    var_dump($var);
+    };
     //echo SubRootDir();
 
-    
+    $a = $func();
+    var_dump($res);
 ?>
 
     
