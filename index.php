@@ -21,25 +21,20 @@ use Dependencies\Http\Request as Request;
     $container = Container::GetInstance();
 
     $container->BindSingleton(Request::class, Request::class, function(Container $_container) {
-
-        echo '<pre>',var_dump($_container), '</pre>';
         return new Request('POST');
     });
     
-
-    $res = $container->Get(Container::class);
-    
-    //echo $res->do = 123;
-
-    $test = $container->Make(A::class);
    
-    $func = function() {
-
-    };
+    function A(Request $con, $a, $b) {
+        echo $a, ' ', $b;
+    }
     //echo SubRootDir();
     
-    $a = $func();
+    $arr = ['b' => 1, 2];
     
+    $a = $container->CallFunction(new ReflectionFunction('A'), $arr);
+    
+    echo '<pre>', var_dump($a), '</pre>';
 ?>
 
     

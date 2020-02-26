@@ -7,7 +7,8 @@
     use Application\Container\Exception\ClassExistsException;
     use Closure;
     use Exception as GlobalException;
-    use ReflectionClass;
+use Reflection;
+use ReflectionClass;
     use ReflectionFunction;
     use ReflectionFunctionAbstract;
     use ReflectionMethod;
@@ -19,6 +20,7 @@
      * for the Dependencies Injector 
      */
     class DIContainer implements Icontainer{
+        protected const ALLOW_NULL = 100;
         protected const BIND_SINGLETON = 1;
         protected const BIND_NORMAL = 2;
 
@@ -256,12 +258,12 @@
         }
 
 
-        protected function ResolveFunctionParameters(ReflectionFunctionAbstract $_function): array {
+        protected function ResolveFunctionParameters(ReflectionFunctionAbstract $_function, int $_mode = 0): array {
             $reflect_params = $_function->getParameters();
 
             if (empty($reflect_params)) return [];
             
-            $process = function ($param) use ($_function) {
+            $process = function ($param) use ($_function, $_mode) {
                 //  if the parameter is default parameter
                 //  just return the function defined default value
                 if ($param->isDefaultValueAvailable()) {
@@ -274,6 +276,11 @@
                 //  If the param is not type-hinted 
                 //  throw exception
                 if (is_null($type)) {
+
+                    //  The second parameter of ResolveFunctionParameters
+                    //  to set the mode to allow non-type hinted parameter
+                    //  the container will pass null value for this parameter 
+                    if ($_mode = self::ALLOW_NULL) return null;
 
                     $param_name = $param->getName();
                     $function_name = $_function->getName();
@@ -332,16 +339,88 @@
             return $this->Build($_abstract);
         }
 
-        public function Call($_abstract, $_option) {
-            if (is_string($_abstract)) {
+        public function Call($_func, $_option = null ,  array $_args = []) {
+            if (is_string($_func)) {
 
+                if (is_string($_option)) return $this->CallMethodFromClass($_func, $_option, $_args);
+
+                if (is_array($_option)) return $this->CallFunction($_func, $_option);
+                
             }
 
-            if ($_abstract instanceof Closure) {
-
+            if ($_func instanceof Closure) {
+                return $this->CallClosure($_func, $_option);
             }
+        }
 
+        private function CallMethodFromClass(string $_method, string $_class, array $_args) {
+            $class = new ReflectionClass($_class);
+            $method = $class->getMethod($_method);
 
+            $params = $method->getParameters();
+
+            //  Get resolved set of arguments that allowed non-type hinted
+            $resolved_args = $this->ResolveFunctionParameters($method, self::ALLOW_NULL);
+
+            $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
+
+            //return $_function->invokeArgs($resolved_args);
+        }  
+
+        private function CallFunction(string $_function, array $_args) {
+            $func = new ReflectionFunction($_function);
+            $params = $_function->getParameters();
+
+            //  Get resolved set of arguments that allowed non-type hinted
+            $resolved_args = $this->ResolveFunctionParameters($func, self::ALLOW_NULL);
+
+            $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
+
+            return $_function->invokeArgs($resolved_args);
+        }
+
+        private function CallClosure(Closure $_function, array $_args) {
+            
+
+        }
+
+        /**
+         *  This method is used in call method to resolve the null arguments
+         *  that is return by ResolveFunctionParameters method in ALLOW_NULL mode
+         * 
+         *  @param array $_resolved_args 
+         *  @param array $_parameters of type ReflectionParameter 
+         *  @param array $_args the set of arguments to inject to the null arguments
+         *  
+         *  @return array
+         */
+        private function ResolveNullArguments(array $_resolved_args, array $_parameters, array $_args): array {
+
+            // index to iterate through $_parameters array
+            $i = 0;
+
+            $inject_null = function($_param) use ($_args, $_parameters, &$i) {
+
+                if ($_param === null) {
+                    $param_name = $_parameters[$i]->getName();
+                    
+                    if (array_key_exists($param_name, $_args)) {
+                        ++$i;
+
+                        return $_args[$param_name];
+                    }
+                    else {
+                        ++$i;
+
+                        return array_pop($_args);
+                    }
+                }
+
+                ++$i;
+                return $_param;
+            };
+
+            return array_map($inject_null ,$_resolved_args);
         }
 
         private function ResolveOptionCall($_option) {
