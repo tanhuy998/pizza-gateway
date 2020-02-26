@@ -18,17 +18,18 @@ use Dependencies\Http\Request as Request;
         }
     }
 
-    $con = new Container();
+    $container = Container::GetInstance();
 
-    $container = new DIContainer();
+    $container->BindSingleton(Request::class, Request::class, function(Container $_container) {
 
-    $container->BindSingleton(Request::class, Request::class, function() {
+        echo '<pre>',var_dump($_container), '</pre>';
         return new Request('POST');
     });
-
-    $res = $container->Get(Request::class);
     
-    echo $res->do = 123;
+
+    $res = $container->Get(Container::class);
+    
+    //echo $res->do = 123;
 
     $test = $container->Make(A::class);
    
@@ -38,7 +39,7 @@ use Dependencies\Http\Request as Request;
     //echo SubRootDir();
     
     $a = $func();
-    echo '<pre>',var_dump($test), '</pre>';
+    
 ?>
 
     

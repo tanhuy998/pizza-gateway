@@ -10,7 +10,7 @@ use stdClass;
         /**
          *  The class to build
          */
-        private $class;
+        private $concrete;
 
         private $name;
 
@@ -132,7 +132,7 @@ use stdClass;
             
         }
 
-        public function GetClass() {
-            return $this->class;
+        public function GetConcrete() {
+            return $this->concrete;
         }
     }

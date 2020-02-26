@@ -19,23 +19,13 @@
      * for the Dependencies Injector 
      */
     class DIContainer implements Icontainer{
-        const BIND_SINGLETON = 1;
-        const BIND_NORMAL = 2;
-
-        /**
-         *  all dependencies which is bound with classes
-         */
-        private $dependenciesList;
+        protected const BIND_SINGLETON = 1;
+        protected const BIND_NORMAL = 2;
 
         /**
          *  all classes that is mapped to dependencies list
          */
         private $bindMap;
-
-        /**
-         *  all interfaces that is mapped to dependencies list
-         */
-        private $interfaceList;
 
         /**
          *  
@@ -49,13 +39,34 @@
 
         private $bindStack;
 
-        public function __construct() {
+        protected static $containerInstance;
+
+        private function __construct() {
+            
             $this->bindStack = [];
             $this->bindMap = [];
             $this->dependenciesList = [];
             $this->alias = [];
             $this->interfaceList = [];
             $this->objectPool = [];
+
+            //$this->BindSingleton(IContainer::class, self::class, $this);
+            $this->bindMap[self::class] = $depen = new Dependency(self::class, $this);
+            $this->bindMap[IContainer::class] = $depen;
+            $this->objectPool[] = $this;
+            $address = count($this->objectPool) - 1;
+            $depen->AsSingleton();
+            $depen->SetSingletonAddress($address);
+        }
+
+        public static function GetInstance() {
+
+            if (is_null(self::$containerInstance) || !(self::$containerInstance instanceof self)) {
+
+                self::$containerInstance = new Self();
+            }
+
+            return self::$containerInstance;
         }
 
         /**
@@ -63,22 +74,22 @@
          * @param string $_class 
          * @return void
          */
-        public function Bind($_abstract, $_class, Closure $_default = null) {
+        public function Bind($_abstract, $_concrete, Closure $_default = null): Dependency {
 
-            if ($this->IsBound($_abstract)) throw new Exception\ClassExistsException($_class);
+            if ($this->IsBound($_abstract)) throw new Exception\ClassExistsException($_concrete);
 
-            $this->ValidateBinding($_abstract, $_class);
+            $this->ValidateBinding($_abstract, $_concrete);
             //
             
             $dependency = null;
 
             if (is_null($_default)) {
-                $dependency = new Dependency($_class, $this);
+                $dependency = new Dependency($_concrete, $this);
             }
             else {
-                $default = $this->ResolveBindingDefault($_class, $_default);
+                $default = $this->ValidateBindingDefault($_concrete, $_default);
                 $default = Closure::fromCallable($default);
-                $dependency = new Dependency($_class, $this, $default);
+                $dependency = new Dependency($_concrete, $this, $default);
             }
 
             $this->bindMap[$_abstract] = $dependency;
@@ -87,36 +98,37 @@
             return $dependency;
         }
 
-        private function ValidateBinding(string $_abstract, string $_class) {
+        private function ValidateBinding(string $_abstract, string $_concrete) {
 
-            if ($_abstract === $_class) return;
+            if ($_abstract === $_concrete) return;
 
-            $class = new ReflectionClass($_class);
+            $concrete = new ReflectionClass($_concrete);
             $abstract = new ReflectionClass($_abstract);
+            
+            if (!$concrete->isInstantiable()) throw new GlobalException("Class $_concrete can not be instantiate");
 
-            if (!$class->isInstantiable()) throw new GlobalException("Class $_class can not be instantiate");
+            if ($concrete->isSubclassOf($_abstract)) return;
 
-            if ($class->isSubclassOf($_abstract)) return;
-
-            throw new GlobalException("Class $_class does not extend or implement $_abstract");
+            throw new GlobalException("Class $_concrete does not extend or implement $_abstract");
         }
 
         /**
          *  Resolve and return the object for when binding method has option
          */
-        private function ResolveBindingDefault(string $_abstract, $_option, bool $_flag = self::BIND_NORMAL) {
+        protected function ValidateBindingDefault(string $_abstract, $_option, bool $_flag = self::BIND_NORMAL) {
 
             //  if $_option is closure(annonymouse function)
             //  the function passed must not have parameter 
             //  and return an instance of the bound class
-            if (is_callable($_option)) {
+            if ($_option instanceof Closure) {
 
                 $func = new ReflectionFunction($_option);
                 $params = $func->getParameters();
 
-                if (!empty($params)) throw new GlobalException('Function that passed to the binding method must not have paramater!');
+                //if (!empty($params)) throw new GlobalException('Function that passed to the binding method must not have paramater!');
+                $params = $this->ResolveFunctionParameters($func);
 
-                $object = $func->invoke();
+                $object = $func->invokeArgs($params);
 
                 if (is_null($object)) throw new GlobalException('Function that pass to the binding method must return value!');
 
@@ -149,7 +161,7 @@
          * @param string $_name
          * @param Application\Container\Dependency
          */
-        private function SetAlias() {
+        protected function SetAlias() {
             $last_bound_dependency = end($this->bindStack);
 
             $name = $last_bound_dependency->GetName();
@@ -165,7 +177,7 @@
             throw new Exception\AliasNameExistsException($name);
         }
 
-        private function AliasExists($_name) {
+        protected function AliasExists($_name) {
 
             return array_key_exists($_name, $this->alias);
         }
@@ -175,7 +187,7 @@
          * @param string $_class 
          * @return bool
          */
-        private function IsBound(string $_abstract): bool {
+        protected function IsBound(string $_abstract): bool {
 
             return array_key_exists($_abstract, $this->bindMap);
         }
@@ -187,10 +199,25 @@
          * @param object
          * @return int the address of the allocated object
          */
-        public function BindSingleton(string $_abstract, string $_class, $_default = null) {
+        public function BindSingleton(string $_abstract, string $_concrete, $_default = null): Dependency {
+            
+            if ($_default instanceof Closure) {
+                $dependency = $this->Bind($_abstract, $_concrete, $_default);
+            }
+            else {
+                
+                $dependency = $this->Bind($_abstract, $_concrete);
+                
+                if (!($_default instanceof $_abstract)) {
+                    throw new GlobalException("Object pass to singleton binding method is not instance of $_abstract");
+                }
+                
+                $this->objectPool[] = $_default;
 
-            // call 
-            $dependency = $this->Bind($_abstract, $_class, $_default);
+                $pool_address = count($this->objectPool) - 1;
+
+                $dependency->SetSingletonAddress($pool_address);
+            }
 
             $dependency->AsSingleton();
 
@@ -229,7 +256,7 @@
         }
 
 
-        private function ResolveFunctionParameters(ReflectionFunctionAbstract $_function): array {
+        protected function ResolveFunctionParameters(ReflectionFunctionAbstract $_function): array {
             $reflect_params = $_function->getParameters();
 
             if (empty($reflect_params)) return [];
@@ -317,11 +344,20 @@
 
         }
 
+        private function ResolveOptionCall($_option) {
+
+            if (is_string($_option)) {
+
+            }
+
+            //if ()
+        }
+
         private function ValidateMethodCall($_method, $_abstract) {
 
         }
 
-        private function ResolveCallFunctionOption($_option) {
+        private function ValidateCallFunctionOption($_option) {
             if (is_string($_option)) {
 
             }
@@ -387,13 +423,25 @@
 
             //  When the dependency doesn't has default object generator
             //  Build an instance of it from the beginning
-            return $this->build($_dependency->GetClass());
+            return $this->build($_dependency->GetConcrete());
         }
 
         private function SetupSingleton(Dependency &$_dependency) {
 
-            $object = $_dependency->HasDefault() ? $_dependency->GetDefaultGenerator()() 
-                        : $this->Build($_dependency->GetClass());
+            // $object = $_dependency->HasDefault() ? $_dependency->GetDefaultGenerator() 
+            //             : $this->Build($_dependency->GetConcrete());
+
+            if ($_dependency->HasDefault()) {
+                $generator = $_dependency->GetDefaultGenerator();
+                $reflect_generator = new ReflectionFunction($generator);
+
+                $args = $this->ResolveFunctionParameters($reflect_generator);
+
+                $object = $reflect_generator->invokeArgs($args);
+            }
+            else {
+                $object = $this->Build($_dependency->GetConcrete());
+            }
 
             $this->objectPool[] = $object;
 
@@ -414,7 +462,7 @@
             $dependency = $this->AliasExists($_name) ? $this->alias[$_name]
                         : $this->IsBound($_name) ? $this->bindMap[$_name] : null;
 
-            if (!$dependency) throw new GlobalException();
+            if (!$dependency) throw new GlobalException("Trying to get $_name from the container that is unbound before");
 
             return $this->ResolveDependency($dependency);
         }
