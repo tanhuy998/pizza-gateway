@@ -16,23 +16,30 @@ use Dependencies\Http\Request as Request;
         {
             $this->res = $res;
         }
+
+        public function test(Request $res, $a , $b, $c) {
+            echo $a, ' ' ,$b, '@', $c;
+        }
     }
 
     $container = Container::GetInstance();
 
-    $container->BindSingleton(Request::class, Request::class, function(Container $_container) {
-        return new Request('POST');
+    $container->Bind(Request::class, Request::class, function(Container $_container) {
+        //echo '<pre>', var_dump($_container), '</pre>';
+        return new Request('PUT');
     });
     
    
-    function A(Request $con, $a, $b) {
-        echo $a, ' ', $b;
-    }
+    // function A(Request $con, $a, $b) {
+    //     echo $a, ' ', $b;
+    // }
     //echo SubRootDir();
     
     $arr = ['b' => 1, 2];
-    
-    $a = $container->CallFunction(new ReflectionFunction('A'), $arr);
+
+    $a = $container->get(Request::class);
+
+    //$a = $container->Call(['class'=> 'A', 'method' => 'test'], ['func' , 'a'=>'ok']);
     
     echo '<pre>', var_dump($a), '</pre>';
 ?>
