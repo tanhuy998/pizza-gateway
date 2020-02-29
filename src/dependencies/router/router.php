@@ -1,26 +1,33 @@
 <?php  
     namespace Dependencies\Router;
 
+    use Closure;
     use Dependencies\Router\Route as Route;
     use Dependencies\Http\Request as Request;
     use Dependencies\Http\Respone as Respone;
-use Dependencies\Middleware\Middleware as Middleware;
+    use Dependencies\Middleware\Middleware as Middleware;
+    use Application\Container\DIContainer as Container;
 
-use Exception;
+    use Exception;
 
-class Router {
-        const GET = 1;
-        const POST = 2;
-        const PUT = 3;
-        const DELETE = 4;
+    class Router {
+        const GET = 'get';
+        const POST = 'post';
+        const PUT = 'put';
+        const DELETE = 'delete';
 
         /**
          *  Four lists storing routes of specific restful methods
          */
-        private $get;
-        private $post;
-        private $put;
-        private $delete;
+        // private $get;
+        // private $post;
+        // private $put;
+        // private $delete;
+
+        /**
+         *  Corner is represent http request's methods
+         */
+        private $corners;
 
         /**
          *  list of registered alias name of the route
@@ -33,10 +40,10 @@ class Router {
         private $registerStack;
 
         public function __construct() {
-            $this->get = [];
-            $this->post = [];
-            $this->put = [];
-            $this->delete = [];
+            $this->corners[self::GET] = [];
+            $this->corners[self::POST] = [];
+            $this->corners[self::PUT] = [];
+            $this->corners[self::DELETE] = [];
 
             $this->nameList = [];
             $this->registerStack = [];
@@ -44,30 +51,42 @@ class Router {
 
         /**
          *  magic fucntion to handle routes declaration
-         *  support 4 method of restful get/post/put/delete
+         *  support 4 methods of restful get/post/put/delete
          */
-        public function __call($_name, $_params) {
-            $name = strtolower($_name);
+        public function __call($_method, $_args) {
+            $method = strtolower($_method);
 
-            //var_dump($_params);
-            $pattern = $_params[0];
-            $action = $_params[1];
+            //var_dump($_option);
+            $path = $_args[0];
+            $action = $_args[1];
 
             //  If $params does not contain two elements so the function is called indirectly
             if (!isset($pattern) || !isset($action)) throw new Exception();
 
             $this->StandardizePattern($pattern);
 
-            //  return the reference of list of the method to map route
-            $this->InitMethod($name, $pattern);
+            $this->CreateRoute($method, $pattern);
 
             //  ResolveMethod function will push new member to $registerStack when method name is correct
             //  throw exception on fail
             $new_route = $this->LastRoute();
 
-            $new_route->SetAction($action);
-
             return $new_route;
+        }
+
+        private function CreateRoute(string $_corner_name, $_path) {
+
+            $name = strtolower($_corner_name);
+
+            if (!array_key_exists($name, $this->corners)) throw new Exception();
+
+            $corner = $this->corners[$name];
+
+            if ($this->PathExists($_path, $corner)) throw new Exception();
+            
+            $this->registerStack[] = new Route($this, $_path);
+
+            $corner[$_path] = end($this->registerStack);
         }
 
         private function StandardizePattern(string &$_pattern) {
@@ -79,75 +98,77 @@ class Router {
         }
 
 
-        public function BindName(string $_name, Route &$_route) {
-            if (isset($this->nameList[$_name])) throw new Exception();
+        private function BindName() {
+            $route = end($this->registerStack);
 
-            $this->nameList[$_name] = $_route;
+            $route_name = $route->Name();
+
+            if (is_null($route_name)) return;
+
+            if (array_key_exists($route_name, $this->nameList)) return;
+
+            $this->nameList['$route_name'] = $route;
         }
 
         /**
          *  Retrive the last registered route from register stack
          */
         private function LastRoute(): Route {
-            $head = count($this->registerStack) - 1;
-            return $this->registerStack[$head];
+
+            return end($this->registerStack);
         }
 
+        private function PathExists(string $_path, array $_corner) {
 
-        private function InitMethod(string $_name, $_pattern) {
-            switch ($_name) {
-                case 'get':
-                    $this->registerStack[] = new Route($this, $_pattern);
-                    $this->get[$_pattern] = $this->registerStack[(count($this->registerStack) -1)];
-                break;
-                case 'post':
-                    $this->registerStack[] = new Route($this, $_pattern);
-                    $this->post[$_pattern] = $this->registerStack[(count($this->registerStack) -1)];
-                break;
-                case 'put':
-                    $this->registerStack[] = new Route($this, $_pattern);
-                    $this->put[$_pattern] = $this->registerStack[(count($this->registerStack) -1)];
-                break;
-                case 'delete':
-                    $this->registerStack[] = new Route($this, $_pattern);
-                    $this->delete[$_pattern] = $this->registerStack[(count($this->registerStack) -1)];
-                break;
-                default:
-                    throw new Exception();
-                break;
-            }
+            return array_key_exists($_path, $_corner);
         }
 
         
 
         public function Handle(Request $_request) {
-            $support = [
-                'get' => self::GET,
-                'post' => self::POST,
-                'put' => self::PUT,
-                'delete' => self::DELETE
-            ];
 
-            $request_method = strtolower($_request->Method());
+            $corner = strtolower($_request->Method());
 
-            $request_method = $support[$request_method];
+            if (!$this->HasCorner($corner)) throw new Exception();
 
-            if (!isset($request_method)) throw new Exception();
+            $route_list = $this->OrientateCorner($corner);
 
-            $route_list = $this->ResolveMethod($request_method);
-
-            $request_path = SubRootDir() != '' ? str_replace(SubRootDir().'/', '', $_request->Path()) : $_request->path();
+            $request_path = $this->RemoveSubrootDirectory($_request->Path());
 
             $direct_route = null;
             
             foreach ($route_list as $pattern => $route) {
+
                 if ($this->PatternMatch($request_path, $pattern)) {
 
                     $direct_route = $route;
+
+                    break;
                 }
             }
 
-            return $this->ResolveRoute($direct_route);
+            if (is_null($direct_route)) ;
+
+            return $this->ResolveRoute($direct_route, $_request);
+        }
+
+        private function OrientateCorner($_corner): array {
+            
+            $corner = strtolower($_corner);
+
+            if (!$this->HasCorner($_corner)) throw new Exception();
+
+            return $this->
+        }
+
+        private function RemoveSubrootDirectory(string $_uri): string {
+
+            return SubRootDir() != '' ? str_replace(SubRootDir().'/', '', $_uri) : $_uri;
+        }
+
+        private function HasCorner(string $_corner) {
+
+            return array_key_exists($_corner, $this->corners);
         }
 
         /**
@@ -155,47 +176,59 @@ class Router {
          *  @param Route
          *  @return Respone
          */
-        public function ResolveRoute(Route $_route) {
+        private function ResolveRoute(Route $_route, $_request) {
 
             $middleware_chain = $_route->Middleware();
 
+            $this->ResolveMiddleware($middleware_chain);
+
             $respone = new Respone();
             
-            foreach ($middleware_chain as $middleware) {
-                $this->HandleMiddleware($middleware);
-            }
+            
 
-            return new $respone;
+            return $respone;
         }
 
-        public function HandleMiddleware($_middleware) {
+        private function ResolveMiddleware(array $_chain): array {
+
+            return [];
+        }
+
+        private function RunMiddleware(array $_middleware_chain, Request $_request, Respone $_respone) {
+
+            $container = Container::GetInstance();
+
+            array_walk($middleware_chain, function($_middleware) use(&$_request, &$_respone, $container) {
+
+                if ($_middleware instanceof Closure) {
+
+                    $container->CallClosure($_middleware);
+
+                    return;
+                }
+
+                if (is_string($_middleware)) {
+
+                    $middleware = $container->get($_middleware);
+
+                    $middleware->execute();
+
+                    return;
+                }
+            });
+        }
+
+        private function ValidateMiddleware($_middleware) {
             if (is_callable($_middleware)) {
 
                 return;
             }
 
             if ($_middleware instanceof Middleware) {
-                $_middleware->Exec($request, $respoone);
+                return
             }    
-        }
 
-        private function ResolveMethod($_method) {
-            switch ($_method) {
-                case self::GET:
-                    return $this->get;
-                break;
-                case self::POST:
-                    return $this->post;
-                break;
-                case self::PUT:
-                    return $this->put;
-                break;
-                case self::DELETE:
-                    return $this->delete;
-                break;
-                default:
-                break;
-            }
+            throw new Exception();
         }
 
         private function PatternMatch(string $_subject, string $_pattern): bool {
@@ -220,5 +253,9 @@ class Router {
             // for ($index = 0; $index < $max_index; ++$index) {
                 
             // }
+        }
+
+        public function RouteRegisterEvent() {
+            $this->BindName();
         }
     }

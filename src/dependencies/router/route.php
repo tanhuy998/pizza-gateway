@@ -1,7 +1,8 @@
 <?php 
     namespace Dependencies\Router;
 
-    use Dependencies\Router\Router as Router;
+use Closure;
+use Dependencies\Router\Router as Router;
 use Exception;
 use ReflectionFunction;
 use ReflectionType;
@@ -28,43 +29,40 @@ class Route {
 
             $this->router = $_router;
 
-            if (is_callable($_action)) {
-                $this->action = $_action;
-            }
-
-            if (is_string($_action)) {
-                $arr = explode(':', $_action);
-
-                $this->action = count($arr) == 2? $arr: null;
-
-                if (!$this->action) {
-                    throw new Exception();
-                }
-            }
-
-            throw new Exception();
-        }
-
-        public function Handle() {
-            
+            $this->ValidateAction($_action);
         }
 
         public function Action() {
             return $this->action;
         }
 
-        public function SetAction($_action) {
-            $this->action = $_action;
+
+        private function ValidateAction($_action) {
+            if ($_action instanceof Closure) {
+                return;
+            }
+
+            if (is_string($_action)) {
+                $arr = explode('::' ,$_action);
+
+                if (count($arr) === 2) {
+                    return;
+                }
+
+                throw new Exception();
+            }
+
+            throw new Exception();
         }
 
-        public function Method($_method) {
-            
+        public function Method() {
+            return $this->method;
         }
 
         public function Name(string $_name) {
             $this->name = $_name;
 
-            $this->router->BindName($_name, $this);
+            $this->router->RouteRegisterEvent();
         }
 
         public function Middleware(...$_chain) {
