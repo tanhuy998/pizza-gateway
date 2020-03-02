@@ -30,6 +30,8 @@ class Route {
             $this->router = $_router;
 
             $this->ValidateAction($_action);
+
+            $this->action = $_action;
         }
 
         public function Action() {

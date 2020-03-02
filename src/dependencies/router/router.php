@@ -7,14 +7,17 @@
     use Dependencies\Http\Respone as Respone;
     use Dependencies\Middleware\Middleware as Middleware;
     use Application\Container\DIContainer as Container;
-
-    use Exception;
+use Application\Container\DIContainer;
+use Dependencies\Http\Respone\Respone as ResponeRespone;
+use Exception;
 
     class Router {
         const GET = 'get';
         const POST = 'post';
         const PUT = 'put';
         const DELETE = 'delete';
+
+        const MIDDLEWARE_PASS = 1;
 
         /**
          *  Four lists storing routes of specific restful methods
@@ -39,7 +42,9 @@
          */
         private $registerStack;
 
-        public function __construct() {
+        private $container;
+
+        public function __construct(DIContainer $_container) {
             $this->corners[self::GET] = [];
             $this->corners[self::POST] = [];
             $this->corners[self::PUT] = [];
@@ -47,6 +52,8 @@
 
             $this->nameList = [];
             $this->registerStack = [];
+
+            $this->container = $_container;
         }
 
         /**
@@ -125,7 +132,7 @@
 
         
 
-        public function Handle(Request $_request) {
+        public function Handle(Request $_request): Respone {
 
             $corner = strtolower($_request->Method());
 
@@ -147,7 +154,9 @@
                 }
             }
 
-            if (is_null($direct_route)) ;
+            if (is_null($direct_route)) {
+                return $this->UnExistRoute();
+            }
 
             return $this->ResolveRoute($direct_route, $_request);
         }
@@ -158,7 +167,7 @@
 
             if (!$this->HasCorner($_corner)) throw new Exception();
 
-            return $this->
+            return $this->corners[$_corner];
         }
 
         private function RemoveSubrootDirectory(string $_uri): string {
@@ -166,7 +175,16 @@
             return SubRootDir() != '' ? str_replace(SubRootDir().'/', '', $_uri) : $_uri;
         }
 
-        private function HasCorner(string $_corner) {
+        protected function UnExistRoute(): Respone {
+            $respone = $this->container->Get(Respone::class);
+
+            $respone->Render('404');
+            $respone->StatusCode(404);
+
+            return $respone;
+        }
+
+        protected function HasCorner(string $_corner) {
 
             return array_key_exists($_corner, $this->corners);
         }
@@ -176,17 +194,53 @@
          *  @param Route
          *  @return Respone
          */
-        private function ResolveRoute(Route $_route, $_request) {
+        private function ResolveRoute(Route $_route, $_request): Respone {
 
             $middleware_chain = $_route->Middleware();
 
-            $this->ResolveMiddleware($middleware_chain);
+            $middlewares = $this->ResolveMiddleware($middleware_chain);
 
-            $respone = new Respone();
-            
-            
+            $respone = $this->container->Get(Respone::class);
+
+            $this->RunMiddleware($middlewares, $_request, $respone);
+
+            if ($respone->Status() === self::MIDDLEWARE_PASS) {
+
+                $action = $_route->Action();
+
+                $result = $this->LoadController($action, $_request);
+
+                $content = $this->ControllerResult($result);
+
+                $respone->Render($content);
+                $respone->StatusCode(200);
+            }
 
             return $respone;
+        }
+
+        private function LoadController($_action, $_request) {
+            if ($_action instanceof Closure) {
+
+                $args = $_request->all();
+
+                return $this->container->CallClosure($_action, $args);
+            }
+
+            if (is_string($_action)) {
+                $arr = explode('::', $_action);
+
+                $controller = $arr[0];
+                $method = $arr[1];
+
+                $args = $_request->all();
+
+                return $this->container->CallMethodFromClass($controller, $method, $args);
+            }
+        }
+
+        private function ControllerResult($_result) {
+
         }
 
         private function ResolveMiddleware(array $_chain): array {
@@ -194,22 +248,21 @@
             return [];
         }
 
-        private function RunMiddleware(array $_middleware_chain, Request $_request, Respone $_respone) {
+        private function RunMiddleware(array $_middleware_chain, Request $_request, Respone &$_respone) {
 
-            $container = Container::GetInstance();
 
             array_walk($middleware_chain, function($_middleware) use(&$_request, &$_respone, $container) {
 
                 if ($_middleware instanceof Closure) {
 
-                    $container->CallClosure($_middleware);
+                    $this->container->CallClosure($_middleware);
 
                     return;
                 }
 
                 if (is_string($_middleware)) {
 
-                    $middleware = $container->get($_middleware);
+                    $middleware = $this->$container->get($_middleware);
 
                     $middleware->execute();
 
@@ -225,7 +278,7 @@
             }
 
             if ($_middleware instanceof Middleware) {
-                return
+                return;
             }    
 
             throw new Exception();
