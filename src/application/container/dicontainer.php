@@ -315,7 +315,7 @@
         public function Call($_option1, $_option2 = [] ,  array $_option3 = []) {
             if (is_string($_option1)) {
 
-                if (is_string($_option2)) return $this->CallMethodFromClass($_option1, $_option2, $_option3);
+                if (is_string($_option2)) return $this->CallMethodFromClass($_option2, $_option1, $_option3);
 
                 if (is_array($_option2)) return $this->CallFunction($_option1, $_option2);
                 
@@ -353,21 +353,29 @@
             return $method->invokeArgs($object, $resolved_args);
         }  
 
-        private function CallFunction(string $_function, array $_args) {
-            $func = new ReflectionFunction($_function);
-            $params = $_function->getParameters();
+        private function CallFunction(string $_function_name, array $_args) {
+            $function = new ReflectionFunction($_function_name);
+            $params = $function->getParameters();
 
             //  Get resolved set of arguments that allowed non-type hinted
-            $resolved_args = $this->ResolveFunctionArguments($func, self::MODE_ALLOW_NULL);
+            $resolved_args = $this->ResolveFunctionArguments($function, self::MODE_ALLOW_NULL);
 
             $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
 
-            return $_function->invokeArgs($resolved_args);
+            return $function->invokeArgs($resolved_args);
         }
 
         private function CallClosure(Closure $_function, array $_args) {
             
+            $function = new ReflectionFunction($_function);
+            $params = $function->getParameters();
 
+            //  Get resolved set of arguments that allowed non-type hinted
+            $resolved_args = $this->ResolveFunctionArguments($function, self::MODE_ALLOW_NULL);
+
+            $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
+
+            return $function->invokeArgs($resolved_args);            
         }
 
         /**
