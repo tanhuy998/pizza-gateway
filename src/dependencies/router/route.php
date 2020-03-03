@@ -62,9 +62,15 @@ class Route {
         }
 
         public function Name(string $_name) {
-            $this->name = $_name;
+            if (!isset($this->name)) {
+                $this->name = $_name;
 
-            $this->router->RouteRegisterEvent();
+                $this->router->RouteRegisterEvent();
+            }
+        }
+
+        public function GetName() {
+            return $this->name;
         }
 
         public function Middleware(...$_chain) {
@@ -76,5 +82,9 @@ class Route {
             foreach ($_chain as $abstract) {
                 $this->middlewareChain[] = $abstract;
             }
+        }
+
+        public function GetUriPattern() {
+            return $this->path;
         }
     }

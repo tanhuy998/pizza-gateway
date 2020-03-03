@@ -158,7 +158,9 @@ use Exception;
                 return $this->UnExistRoute();
             }
 
-            return $this->ResolveRoute($direct_route, $_request);
+            $_request->SetRoute($direct_route);
+
+            return $this->ResolveRoute($_request);
         }
 
         private function OrientateCorner($_corner): array {
@@ -194,9 +196,11 @@ use Exception;
          *  @param Route
          *  @return Respone
          */
-        private function ResolveRoute(Route $_route, $_request): Respone {
+        private function ResolveRoute(Request $_request): Respone {
 
-            $middleware_chain = $_route->Middleware();
+            $route = $_request->Route();
+
+            $middleware_chain = $route->Middleware();
 
             $middlewares = $this->ResolveMiddleware($middleware_chain);
 
@@ -206,11 +210,11 @@ use Exception;
 
             if ($respone->Status() === self::MIDDLEWARE_PASS) {
 
-                $action = $_route->Action();
+                $action = $route->Action();
 
                 $result = $this->LoadController($action, $_request);
 
-                $content = $this->ControllerResult($result);
+                $content = $this->ConvertControllerResult($result);
 
                 $respone->Render($content);
                 $respone->StatusCode(200);
@@ -219,12 +223,15 @@ use Exception;
             return $respone;
         }
 
-        private function LoadController($_action, $_request) {
+        private function LoadController($_action, Request $_request) {
+
+            $route_args = $this->GetUriArguments($_request);
+
             if ($_action instanceof Closure) {
 
                 $args = $_request->all();
 
-                return $this->container->CallClosure($_action, $args);
+                return $this->container->Call($_action, $route_args);
             }
 
             if (is_string($_action)) {
@@ -235,11 +242,35 @@ use Exception;
 
                 $args = $_request->all();
 
-                return $this->container->CallMethodFromClass($controller, $method, $args);
+                return $this->container->Call($controller, $method, $route_args);
             }
         }
 
-        private function ControllerResult($_result) {
+        private function GetUriArguments(Request $_request): array {
+            $request_uri = $_request->Path();
+
+            $route_uri_pattern = $_request->Route()->GetUriPattern();
+
+            preg_match_all('/\{(.+?)\}/', $route_uri_pattern, $matches);
+
+            $route_params = $matches[1];
+
+            $keys = preg_replace('/\{|\}/', '', $route_uri_pattern);
+            $keys = explode('/', $keys);
+
+            $values = explode('/', $request_uri);
+
+            $arr = array_combine($keys, $values);
+        
+            $callback = function ($key) use ($route_params) {
+            
+                return in_array($key, $route_params);
+            };
+
+            return array_filter($arr ,$callback, ARRAY_FILTER_USE_KEY);
+        }
+
+        private function ConvertControllerResult($_result) {
 
         }
 
