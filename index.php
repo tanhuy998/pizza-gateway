@@ -40,9 +40,14 @@ use Dependencies\Http\Request as Request;
     $a = $container->get(Request::class);
 
     //$a = $container->Call(['class'=> 'A', 'method' => 'test'], ['func' , 'a'=>'ok']);
-    
-    echo '<pre>', var_dump($a), '</pre>';
+    echo $a->Description();
+    echo '<pre>', var_dump($a->All()), '</pre>';
 ?>
+
+<form method="POST" action="/mvc?a=1">
+    <input type="text" value="">
+    <input type="submit" value="1">
+</form>
 
     
     
