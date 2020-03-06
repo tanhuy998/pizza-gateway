@@ -7,20 +7,93 @@ use ReflectionFunction;
 class Respone {
 
         const MIDDLEWARE_PASS = 200;
+        const RENDER_OVERIDE = 10;
+        const RENDER_CONTINOUS = 11;
 
         private $container;
         private $content;
-        private $status;
+        private $httpStatus;
         private $cookies;
         private $headers;
+        private $renderMode;
+
+        //private $middlewaresPassed;
+
+        static protected $httpResponseCode = [
+            '100' => 'Continue',
+            '101' => 'Swicthing Protocol',
+            '102' => 'Processing',
+            '103' => 'Early Hints',
+            '200' => 'OK',
+            '201' => 'Created',
+            '202' => 'Accepted',
+            '203' => 'Non-Authoritative Information',
+            '204' => 'No Content',
+            '205' => 'Reset Content',
+            '206' => 'Partial Content',
+            '207' => 'Multi-Status',
+            '208' => 'Already Reported',
+            '226' => 'IM Used',
+            '300' => 'Multiple Choice',
+            '301' => 'Moved Permanently',
+            '302' => 'Found',
+            '303' => 'See Other',
+            '304' => 'Not Modified',
+            '305' => 'Use Proxy',
+            '306' => 'Unused',
+            '307' => 'Temporary Redirect',
+            '308' => 'Permanent Redirect',
+            '400' => 'Bad Request',
+            '401' => 'Unathorized',
+            '402' => 'Payment Required',
+            '403' => 'Forbiden',
+            '404' => 'Not Found',
+            '405' => 'Method Not Allowed',
+            '406' => 'Not Acceptable',
+            '407' => 'Proxy Authentication Required',
+            '408' => 'Request Timeout',
+            '409' => 'Conflict',
+            '410' => 'Gone',
+            '411' => 'Length Required',
+            '412' => 'Precondition Failed',
+            '413' => 'Payload Too Large',
+            '414' => 'URI Too Long',
+            '415' => 'Unsupported Media Type',
+            '416' => 'Range Not Satisfiable',
+            '417' => 'Expectation Failed',
+            '418' => 'I\'m a teapot',
+            '421' => 'Misdirected Request',
+            '422' => 'Unprocessable Entity',
+            '423' => 'Locked',
+            '424' => 'Failed Dependency',
+            '425' => 'Too Early',
+            '426' => 'Upgrade Required',
+            '428' => 'Precondition Required',
+            '429' => 'Too Many Request',
+            '431' => 'Request Header Field Too Large',
+            '451' => 'Unavailable For Legal Reasons',
+            '500' => 'Internal Server Error',
+            '501' => 'Not Implemented',
+            '502' => 'Bad Gateway',
+            '503' => 'Service Unavailable',
+            '504' => 'Gateway Timeout',
+            '505' => 'HTTP Version Not Supported',
+            '506' => 'Variants Also Negotaites',
+            '507' => 'Insufficient Storage',
+            '508' => 'Loop Detected',
+            '510' => 'Not Extend',
+            '511' => 'Network Authentication Required'
+        ]; 
 
         public function __construct(int $_status = 200, DIContainer $_container) {
             //ob_start();
             $this->container = $_container;
-            $this->status = $_status;
+            $this->httpStatus = $_status;
             $this->content = '';
             $this->cookies = [];
             $this->headers = [];
+
+            $this->renderMode = self::RENDER_CONTINOUS;
         }
 
         public function Header(string $_key, $_value) {
@@ -39,29 +112,49 @@ class Respone {
             });
         }
 
-        public function Status(int $_option = null) {
-            if(!is_null($_option)) {
-                http_response_code($_option);
+        public function Status(int $_code = null) {
+            if(!is_null($_code)) {
+                //http_response_code($_option);
+                $code = strval($_code);
+
+                $this->httpStatus = array_key_exists($code, self::$httpResponseCode)
+                                    ? $_code : $this->httpStatus;
             }
 
-            return http_response_code();
+            return $this->httpStatus;
         }
 
-        public function Render($_content) {
-            
+        public function Render($_content, int $_mode = self::RENDER_CONTINOUS) {
+
+            $this->renderMode = ($_mode === self::RENDER_CONTINOUS || $_mode === self::RENDER_OVERIDE)
+                                ? $_mode : $this->renderMode;
+
             $this->ResolveContent($_content);
         }
 
         private function ResolveContent($_content) {
             if (is_array($_content)) {
-                $this->content = json_encode($_content);
+                $content = json_encode($_content);
                 $this->Header('Content-Type', 'application/json');
             }
 
             if (is_string($_content)) {
-                $this->content = $_content;
+                $content = $_content;
                 $this->Header('Content-Type', 'text/HTML;charset=utf-8');
             }
+
+            if (isset($content)) {
+                if ($this->renderMode === self::RENDER_CONTINOUS) {
+                    $this->content .= $content;
+                }
+                else {
+                    $this->content = $content;
+                }
+            }
+        }
+
+        public function GetContent() {
+
         }
 
         // public function Status($_option = null) {
@@ -116,11 +209,16 @@ class Respone {
 
         public function Send() {
 
-            
-            echo $this->content;
+            http_response_code($this->httpStatus);
+            $this->SendContent();
             $this->SendHeader();
             $this->SendCookies();
+
             ob_end_flush();
             //ob_end_clean();
+        }
+
+        private function SendContent() {
+            echo $this->content;
         }
     }
