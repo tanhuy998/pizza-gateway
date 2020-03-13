@@ -194,15 +194,18 @@
                 
                 $dependency = $this->Bind($_abstract, $_concrete);
                 
-                if (!($_default instanceof $_abstract)) {
-                    throw new GlobalException("Object pass to singleton binding method is not instance of $_abstract");
+                if ($_default !== null) {
+                    
+                    if (!($_default instanceof $_abstract)) {
+                        throw new GlobalException("Object pass to singleton binding method is not instance of $_abstract");
+                    }
+
+                    $this->objectPool[] = $_default;
+
+                    $pool_address = count($this->objectPool) - 1;
+
+                    $dependency->SetSingletonAddress($pool_address);
                 }
-                
-                $this->objectPool[] = $_default;
-
-                $pool_address = count($this->objectPool) - 1;
-
-                $dependency->SetSingletonAddress($pool_address);
             }
 
             $dependency->AsSingleton();
@@ -331,9 +334,13 @@
                 $this->CallMethodFromClass($method_name, $class_name, $_option2);
             }
 
-            // if ($_func instanceof Closure) {
-            //     return $this->CallClosure($_func, $_option);
-            // }
+            if ($_option1 instanceof Closure) {
+
+                if (is_array($_option2)) {
+                    return $this->CallClosure($_option1, $_option2);
+                }
+                else return $this->CallClosure($_option1, []);
+            }
         }
 
         private function CallMethodFromClass(string $_method, string $_class, array $_args) {
