@@ -30,15 +30,16 @@ use Dependencies\Router\Router as Router;
     //     return new Request('PUT');
     // }); 
     
-   
+    header('Access-Control-Allow-Origin: *');
 
     $res = $container->make(Respone::class);
-
-    $res->Cookie('name', '2');
-    $res->Header('Content-Type', 'application/json');
-    $res->Render('abc');
-    $res->Render('123', Respone::RENDER_OVERIDE);
-    $res->Send();
+    
+    echo $_SERVER['REQUEST_METHOD'];
+    // $res->Cookie('name', '2');
+    // $res->Header('Content-Type', 'application/json');
+    // $res->Render('abc');
+    // $res->Render('123', Respone::RENDER_OVERIDE);
+    // $res->Send();
 
 
 

@@ -4,32 +4,54 @@
 use Dependencies\Router\Route;
 use Exception;
 
-class Request {
+    class Request {
+        const REQUEST_FINE = true;
+        const REQUEST_STOP = 0;
+
+        protected static $http_methods = [
+            'GET',
+            'POST', 
+            'HEAD', 
+            'PUT', 
+            'DELETE',
+            'PATCH'
+        ];
 
         private $method;
-        private $input;
+        private $inputs;
         private $queries;
-        private $cookie;
+        private $cookies;
+        private $files;
 
         private $route;
 
-        public function __construct($_method = 'GET') {
-            $http_methods = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'CONNECT', 'OPTIONs', 'TRACE', 'PATCH'];
+        private $error;
+        private $middlewaresMessage;
 
-            if (in_array($_method, $http_methods)) {
+        public function __construct($_method = 'GET') {
+
+            if (in_array($_method, self::$http_methods)) {
                 $this->method = $_method;
 
-                $this->Bind();
+                $this->BindGlobal();
             }
+
         }
         
+        // public function Status() {
+        //     if (isset($this->error)) {
+        //         $error = $this->error;
+        //         return $this->middlewaresMessage[$error];
+        //     }
 
+        //     return self::REQUEST_FINE;
+        // }
         
-        private function Bind() {
+        private function BindGlobal() {
             $this->inputs = $_POST;
             $this->cookies = $_COOKIE;
             $this->queries = $_GET;
-
+            $this->files = $_FILES;
             //$this->server = $_SERVER;
         }
 
@@ -80,30 +102,34 @@ class Request {
 
         }
 
-        public function Cookie($name) {
-            $value = $_COOKIE[$name];
-
-            return $value ?? null;
+        public function Cookie($_name) {
+            return array_key_exists($_name, $this->cookies) 
+                    ? $this->cookies[$_name] : null;
         }
 
         public function __get($name) {
             $this->Input($name);
         }
 
-        public function Input($name) {
-            $content = $this->inputs[$name];
+        public function Input(string $_name) {
 
-            return $content ?? null;
+            return array_key_exists($_name, $this->inputs) 
+                    ? $this->inputs[$_name] : null;
         }
 
-        public function Query($name) {
-            $content = $this->queries[$name];
+        public function File(string $_name) {
 
-            return $content ?? null;
+            return array_key_exists($_name, $this->files) 
+                    ? $this->files[$_name] : null;
+        }
+
+        public function Query($_name) {
+            return array_key_exists($_name, $this->queries) 
+                    ? $this->queries[$_name] : null;
         }
 
         public function All() {
-            return $this->input;
+            return $this->inputs;
         }
 
         public function Description() {
