@@ -13,10 +13,10 @@ use Dependencies\Router\Router as Router;
     // class A {
     //     public $res;
 
-    //     public function __construct(Request $res)
-    //     {
-    //         $this->res = $res;
-    //     }
+        function test(Request $res, $a, int $b, $c)
+        {
+           var_dump($c);
+        }
 
     //     public function test(Request $res, $a , $b, $c) {
     //         echo $a, ' ' ,$b, '@', $c;
@@ -24,7 +24,7 @@ use Dependencies\Router\Router as Router;
     // }
 
     $container = Container::GetInstance();
-
+    $container->call('test', [ 'res' => new Request('PUT'),  1, 'b' => 2]);
     // $container->Bind(Request::class, Request::class, function(Container $_container) {
     //     //echo '<pre>', var_dump($_container), '</pre>';
     //     return new Request('PUT');

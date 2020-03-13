@@ -7,12 +7,15 @@
     use Application\Container\Exception\ClassExistsException;
     use Closure;
     use Exception as GlobalException;
-    use ReflectionClass;
+use Reflection;
+use ReflectionClass;
     use ReflectionFunction;
     use ReflectionFunctionAbstract;
     use ReflectionMethod;
+use ReflectionObject;
+use ReflectionType;
 
-    /**
+/**
      * DIContiner class define a container that stores dependencies
      * for the Dependencies Injector 
      */
@@ -195,7 +198,7 @@
                 $dependency = $this->Bind($_abstract, $_concrete);
                 
                 if ($_default !== null) {
-                    
+
                     if (!($_default instanceof $_abstract)) {
                         throw new GlobalException("Object pass to singleton binding method is not instance of $_abstract");
                     }
@@ -256,6 +259,11 @@
 
                 $type = $param->getType();
 
+                $param_name = $param->getName();
+                $function_name = $_function->getName();
+
+                $function_class = ($_function instanceof ReflectionMethod) ? 
+                                $_function->getDeclaringClass()->getName().'::' : '';
                 //  If the param is not type-hinted 
                 //  throw exception
                 if (is_null($type)) {
@@ -265,19 +273,17 @@
                     //  the container will pass null value for this parameter 
                     if ($_mode = self::MODE_ALLOW_NULL) return null;
 
-                    $param_name = $param->getName();
-                    $function_name = $_function->getName();
-
-                    $function_class = ($_function instanceof ReflectionMethod) ? 
-                                        $_function->getDeclaringClass()->getName().'::' : '';
-
                     throw new GlobalException("Parameter \"$param_name\" of function \"$function_class $function_name()\" is not type hinted");
                 } 
 
                 //  If the parameter is built-in type
                 //  throw exception
-                if ($type->isBuiltin()) throw new GlobalException("Could not inject parameter $param_name with built-in($type)");
+                if ($type->isBuiltin()) {
 
+                    if ($_mode = self::MODE_ALLOW_NULL) return null;
+
+                    throw new GlobalException("Could not inject parameter $param_name with built-in($type)");
+                }
                 //  When the parameter is not built-in type
                 //  Check the parameter is type hinted to a class
                 //  Get the type hinted parameter's class
@@ -400,12 +406,18 @@
             // index to iterate through $_parameters array
             $i = 0;
 
-            $inject_null = function($_arg) use (&$_args, $_parameters, &$i) {
+            $inject = function($_argument) use (&$_args, $_parameters, &$i) {
                 
-                if ($_arg === null) {
-                    $param_name = $_parameters[$i]->getName();
-                    
-                    if (array_key_exists($param_name, $_args)) {
+                $param_name = $_parameters[$i]->getName();
+
+                if (array_key_exists($param_name, $_args)) {
+
+                    $param_type = $_parameters[$i]->getType();
+
+                    //  If the parameter is not type-hinted
+                    //  then pass the argument with specific name
+                    //  of the arguments list 
+                    if (is_null($param_type)) {
                         ++$i;
 
                         $ret = $_args[$param_name];
@@ -413,22 +425,55 @@
 
                         return $ret;
                     }
-                    else {
+
+                    //  because ReflectionType::getType() return 'int'
+                    //  and gettype() return 'integer' of type int
+                    //  so we must convert the result to 'integer' when the parameter's type is int
+                    $param_type_name = $param_type->getName() === 'int' ? 'integer' : $param_type->getName();
+                    $argument_type_name = gettype($_args[$param_name]);
+
+                    if ($param_type_name == $argument_type_name) {
+                        ++$i;
+
+                        $ret = $_args[$param_name];
+                        unset($_args[$param_name]);
+
+                        return $ret;
+                    }
+                    
+                    //  If the parameter is not buitin type
+                    //  Then check if the parameter's class
+                    //  and the argument's class is the same
+                    $param_class = $_parameters[$i]->getClass()->getName();
+                    $reflection = new ReflectionObject($_args[$param_name]);
+                    $argument_class = $reflection->getName();
+
+                    if ($param_class === $argument_class) {
+                        ++$i;
+
+                        $ret = $_args[$param_name];
+                        unset($_args[$param_name]);
+
+                        return $ret;
+                    }
+                }
+
+
+                if ($_argument === null) {
+                    
                         ++$i;
 
                         $ret = $_args[0] ?? null;
                         array_splice($_args, 0, 1);
 
                         return $ret;
-                    }
                 }
 
-                // if $_param
                 ++$i;
-                return $_arg;
+                return $_argument;
             };
 
-            return array_map($inject_null ,$_resolved_args);
+            return array_map($inject ,$_resolved_args);
         }
 
         /**
