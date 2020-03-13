@@ -7,17 +7,19 @@
     use Dependencies\Http\Respone as Respone;
     use Dependencies\Middleware\Middleware as Middleware;
     use Application\Container\DIContainer as Container;
-use Application\Container\DIContainer;
-use Dependencies\Http\Respone\Respone as ResponeRespone;
-use Exception;
+    use Exception;
+use Reflection;
+use ReflectionFunction;
+use ReflectionFunctionAbstract;
+use ReflectionMethod;
 
-    class Router {
+class Router {
         const GET = 'get';
         const POST = 'post';
         const PUT = 'put';
         const DELETE = 'delete';
 
-        const MIDDLEWARE_PASS = 1;
+        const MIDDLEWARE_PASS = 200;
 
         /**
          *  Four lists storing routes of specific restful methods
@@ -44,7 +46,7 @@ use Exception;
 
         private $container;
 
-        public function __construct(DIContainer $_container) {
+        public function __construct(Container $_container) {
             $this->corners[self::GET] = [];
             $this->corners[self::POST] = [];
             $this->corners[self::PUT] = [];
@@ -64,7 +66,7 @@ use Exception;
             $method = strtolower($_method);
 
             //var_dump($_option);
-            $path = $_args[0];
+            $pattern = $_args[0];
             $action = $_args[1];
 
             //  If $params does not contain two elements so the function is called indirectly
@@ -72,7 +74,7 @@ use Exception;
 
             $this->StandardizePattern($pattern);
 
-            $this->CreateRoute($method, $pattern);
+            $this->CreateRoute($method, $pattern, $action);
 
             //  ResolveMethod function will push new member to $registerStack when method name is correct
             //  throw exception on fail
@@ -81,19 +83,19 @@ use Exception;
             return $new_route;
         }
 
-        private function CreateRoute(string $_corner_name, $_path) {
+        private function CreateRoute(string $_corner_name, $_pattern, $_action) {
 
             $name = strtolower($_corner_name);
 
             if (!array_key_exists($name, $this->corners)) throw new Exception();
-
-            $corner = $this->corners[$name];
-
-            if ($this->PathExists($_path, $corner)) throw new Exception();
             
-            $this->registerStack[] = new Route($this, $_path);
+            $corner = &$this->corners[$name];
 
-            $corner[$_path] = end($this->registerStack);
+            if ($this->PatternExists($_pattern, $corner)) throw new Exception();
+            
+            $this->registerStack[] = new Route($this, $_pattern, $_action);
+
+            $corner[$_pattern] = end($this->registerStack);
         }
 
         private function StandardizePattern(string &$_pattern) {
@@ -125,7 +127,7 @@ use Exception;
             return end($this->registerStack);
         }
 
-        private function PathExists(string $_path, array $_corner) {
+        private function PatternExists(string $_path, array $_corner) {
 
             return array_key_exists($_path, $_corner);
         }
@@ -135,13 +137,13 @@ use Exception;
         public function Handle(Request $_request): Respone {
 
             $corner = strtolower($_request->Method());
-
+            
             if (!$this->HasCorner($corner)) throw new Exception();
 
             $route_list = $this->OrientateCorner($corner);
 
             $request_path = $this->RemoveSubrootDirectory($_request->Path());
-
+            
             $direct_route = null;
             
             foreach ($route_list as $pattern => $route) {
@@ -181,7 +183,7 @@ use Exception;
             $respone = $this->container->Get(Respone::class);
 
             $respone->Render('404');
-            $respone->StatusCode(404);
+            $respone->Status(404);
 
             return $respone;
         }
@@ -203,7 +205,7 @@ use Exception;
             $middleware_chain = $route->Middleware();
 
             $middlewares = $this->ResolveMiddleware($middleware_chain);
-
+            
             $respone = $this->container->Get(Respone::class);
 
             $this->RunMiddleware($middlewares, $_request, $respone);
@@ -214,10 +216,10 @@ use Exception;
 
                 $result = $this->LoadController($action, $_request);
 
-                $content = $this->ConvertControllerResult($result);
+                //$content = $this->ConvertControllerResult($result);
 
-                $respone->Render($content);
-                $respone->StatusCode(200);
+                $respone->Render($result);
+                $respone->Status(200);
             }
 
             return $respone;
@@ -225,13 +227,15 @@ use Exception;
 
         private function LoadController($_action, Request $_request) {
 
-            $route_args = $this->GetUriArguments($_request);
+            $route_args = $this->ParseUriArguments($_request);
 
             if ($_action instanceof Closure) {
 
-                $args = $_request->all();
+                $reflection = new ReflectionFunction($_action);
 
-                return $this->container->Call($_action, $route_args);
+                $args = $this->AnalyseControllerParameters($reflection, $route_args);
+                
+                return $this->container->Call($_action, $args);
             }
 
             if (is_string($_action)) {
@@ -240,14 +244,18 @@ use Exception;
                 $controller = $arr[0];
                 $method = $arr[1];
 
-                $args = $_request->all();
+                $reflection = new ReflectionMethod($controller, $method);
 
-                return $this->container->Call($controller, $method, $route_args);
+                $args = $this->AnalyseControllerParameters($reflection, $route_args);
+
+                return $this->container->Call($controller, $method, $args);
             }
         }
 
-        private function GetUriArguments(Request $_request): array {
+        private function ParseUriArguments(Request $_request): array {
             $request_uri = $_request->Path();
+            
+            $request_real_uri = $this->RemoveSubrootDirectory($request_uri);
 
             $route_uri_pattern = $_request->Route()->GetUriPattern();
 
@@ -258,8 +266,8 @@ use Exception;
             $keys = preg_replace('/\{|\}/', '', $route_uri_pattern);
             $keys = explode('/', $keys);
 
-            $values = explode('/', $request_uri);
-
+            $values = explode('/', $request_real_uri);
+            
             $arr = array_combine($keys, $values);
         
             $callback = function ($key) use ($route_params) {
@@ -270,8 +278,44 @@ use Exception;
             return array_filter($arr ,$callback, ARRAY_FILTER_USE_KEY);
         }
 
-        private function ConvertControllerResult($_result) {
+        private function AnalyseControllerParameters(ReflectionFunctionAbstract $_function, array $_args): array {
+            $parameters = $_function->getParameters();
 
+            foreach ($parameters as $param) {
+                $name = $param->getName();
+
+                $type = $param->getType();
+
+                if (!array_key_exists($name, $_args)) continue;
+                
+                // if the parameter has buitin type then cast the argument for the type
+                if (!is_null($type)) {
+
+                    $type_name = $type->getName();
+
+                    switch($type_name) {
+                        case 'int':
+                            $_args[$name] = (int) $_args[$name];
+                        break;
+                        case 'string':
+                            $_args[$name] = (string) $_args[$name];
+                        break;
+                        case 'float':
+                            $_args[$name] = (float) $_args[$name];
+                        break;
+                        case 'double':
+                            $_args[$name] = (double) $_args[$name];
+                        break;
+                        case 'array':
+                            $_args[$name] = (array) $_args[$name];
+                        break;
+                    }
+                }
+
+
+            }
+
+            return $_args;
         }
 
         private function ResolveMiddleware(array $_chain): array {
@@ -281,13 +325,14 @@ use Exception;
 
         private function RunMiddleware(array $_middleware_chain, Request $_request, Respone &$_respone) {
 
-
-            array_walk($middleware_chain, function($_middleware) use(&$_request, &$_respone, $container) {
+            $container = $this->container;
+            
+            array_walk($_middleware_chain, function($_middleware) use(&$_request, &$_respone, $container) {
 
                 if ($_middleware instanceof Closure) {
 
-                    $this->container->CallClosure($_middleware);
-
+                    $this->container->Call($_middleware);
+                    
                     return;
                 }
 

@@ -19,7 +19,7 @@ class Route {
 
         private $method;
 
-        private $middlewareChain;
+        private $middlewares;
 
 
         public function __construct(Router &$_router, $_path, $_action = null) {
@@ -29,8 +29,8 @@ class Route {
 
             $this->router = $_router;
 
-            $this->ValidateAction($_action);
-
+            if (!is_null($_action)) $this->SetAction($_action);
+            
             $this->action = $_action;
         }
 
@@ -38,6 +38,15 @@ class Route {
             return $this->action;
         }
 
+        public function SetAction($_action) {
+
+            if (!isset($this->action)) {
+                $this->ValidateAction($_action);
+
+                $this->action = $_action;
+            }
+
+        }
 
         private function ValidateAction($_action) {
             if ($_action instanceof Closure) {
@@ -80,9 +89,24 @@ class Route {
             }
 
             foreach ($_chain as $abstract) {
-                $this->middlewareChain[] = $abstract;
+
+                if (is_string($abstract)) {
+
+                    $chain = explode('-', $abstract);
+
+                    $this->middlewares = array_merge($this->middlewares, $chain);
+
+                    continue;
+                }
+
+                if ($abstract instanceof Closure) {
+                    $this->middlewares[] = $abstract;
+                    
+                    continue;
+                }
             }
         }
+
 
         public function GetUriPattern() {
             return $this->path;
