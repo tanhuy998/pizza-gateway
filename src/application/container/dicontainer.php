@@ -288,7 +288,7 @@
          *  
          *  This method only Inject the type-hinted parameter,
          *  for the untype-hinted parameter this method will act
-         *  depend on it's mode.
+         *  depend on it's mode.g
          * 
          *  This method has 2 mode: MODE_ALLOW_NULL and MODE_NOT_ALLOW_NULL,
          *  MODE_ALLOW_NULL will skip and pass null to the function's parameter that is not type-hinted,
