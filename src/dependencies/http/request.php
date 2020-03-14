@@ -69,13 +69,11 @@ use Exception;
             $last_char = substr($path, strlen($path) - 1, 1);
             $first_char = substr($path, 0, 1);
 
-            if ($last_char == '/') {
-                $path = substr($path, 0, strlen($path) -1);
-            }
+            $path = preg_replace('/^(\/)+/', '', $path);
 
-            if ($first_char == '/') {
-                $path = substr($path, 1, strlen($path) -1);
-            }
+            $path = '/'.$path;
+
+            $path = preg_replace('/(\/)+$/', '', $path);
 
             return $path;
         }
@@ -86,13 +84,11 @@ use Exception;
             $last_char = substr($path, strlen($path) - 1, 1);
             $first_char = substr($path, 0, 1);
 
-            if ($last_char == '/') {
-                $path = substr($path, 0, strlen($path) -1);
-            }
+            $path = preg_replace('/^(\/)+/', '', $path);
 
-            if ($first_char == '/') {
-                $path = substr($path, 1, strlen($path) -1);
-            }
+            $path = '/'.$path;
+
+            $path = preg_replace('/(\/)+$/', '', $path);
 
             return $path;
         }
