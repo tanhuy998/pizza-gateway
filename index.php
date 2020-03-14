@@ -53,9 +53,11 @@ use Dependencies\Router\Router as Router;
 
     $router = $container->Get(Dependencies\Router\Router::class);
 
-    $router->Get('test/{id}', function (int $id) {
+    $router->Get('/test/{id}', function (int $id) {
         echo $id;
     });
+
+    $router->Get('/testcontroller/{id}', 'TestController::Index');
 
     $respone = $router->Handle($request);
 

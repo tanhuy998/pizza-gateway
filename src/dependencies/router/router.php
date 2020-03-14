@@ -20,6 +20,7 @@ class Router {
         const DELETE = 'delete';
 
         const MIDDLEWARE_PASS = 200;
+        const CONTROLLER_NAMESPACE = 'App\Controller';
 
         /**
          *  Four lists storing routes of specific restful methods
@@ -102,8 +103,13 @@ class Router {
             $first_char = substr($_pattern,0,1);
             $last_char = substr($_pattern, strlen($_pattern)-1, 1);
 
-            $_pattern = $first_char == '/' ? substr($_pattern,1, strlen($_pattern) -1): $_pattern;
-            $_pattern = $last_char == '/' ? substr($_pattern,0,strlen($_pattern) -1): $_pattern;
+            $_pattern = preg_replace('/^(\/)+/', '', $_pattern);
+
+            $_pattern = '/'.$_pattern;
+
+            $_pattern = preg_replace('/(\/)+$/', '', $_pattern);
+            // $_pattern = $first_char == '/' ? substr($_pattern,1, strlen($_pattern) -1): $_pattern;
+            // $_pattern = $last_char == '/' ? substr($_pattern,0,strlen($_pattern) -1): $_pattern;
         }
 
 
@@ -147,9 +153,9 @@ class Router {
             $direct_route = null;
             
             foreach ($route_list as $pattern => $route) {
-
+                
                 if ($this->PatternMatch($request_path, $pattern)) {
-
+                    
                     $direct_route = $route;
 
                     break;
@@ -241,7 +247,7 @@ class Router {
             if (is_string($_action)) {
                 $arr = explode('::', $_action);
 
-                $controller = $arr[0];
+                $controller = self::CONTROLLER_NAMESPACE.'\\'.$arr[0];
                 $method = $arr[1];
 
                 $reflection = new ReflectionMethod($controller, $method);
