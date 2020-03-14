@@ -7,32 +7,32 @@
     use Application\Container\Exception\ClassExistsException;
     use Closure;
     use Exception as GlobalException;
-use Reflection;
-use ReflectionClass;
+    use ReflectionClass;
     use ReflectionFunction;
     use ReflectionFunctionAbstract;
     use ReflectionMethod;
-use ReflectionObject;
-use ReflectionType;
+    use ReflectionObject;
+    use ReflectionType;
 
-/**
-     * DIContiner class define a container that stores dependencies
-     * for the Dependencies Injector 
+    /**
+     *  DIContiner class define a container that stores dependencies
+     *  for the Dependency injection 
      */
     class DIContainer implements Icontainer{
         protected const MODE_ALLOW_NULL = 100;
+        protected const MODE_NOT_ALLOW_NULL = 101;
         protected const BIND_SINGLETON = 1;
-        protected const BIND_NORMAL = 2;
+        protected const BIND_TRANSIENT = 2;
 
         /**
          *  Set of Application\Container\Dependency
          */
-        private $bindMap;
+        protected $bindMap;
 
         /**
-         *  set of registered alias for dependencies's conrete
+         *  set of registered alias for dependencies
          */
-        private $alias;
+        protected $alias;
 
         /**
          *  stores concretes's object that is bind as singleton 
@@ -42,10 +42,10 @@ use ReflectionType;
         /**
          *  To trace the binding status for binding events
          */
-        private $bindStack;
+        protected $bindStack;
 
         /**
-         *  This class is designed using singleton pattern 
+         *  This class is implementing singleton pattern 
          *  To make the whole script use just one container object 
          *  for better accurate of injecting dependencies 
          *  and prevents confusions while using
@@ -74,6 +74,9 @@ use ReflectionType;
             $depen->SetSingletonAddress($address);
         }
 
+        /**
+         *  Get static instance of DIContainer class
+         */
         public static function GetInstance() {
 
             if (is_null(self::$containerInstance) || !(self::$containerInstance instanceof self)) {
@@ -85,11 +88,16 @@ use ReflectionType;
         }
 
         /**
-         * function that add specific class to the the container's class list
-         * @param string $_class 
-         * @return void
+         * Function that add specific class to the the container's class list
+         * The concrete class is instantiate each time when getting object
+         * 
+         * @param string $_abstract The abstact class/interface to be injected
+         * @param string $_concrete The concrete class to be instantiate
+         * @param Closure $_default The default object generator when getting instance from the Container
+         * 
+         * @return Application\Container\Dependency
          */
-        public function Bind($_abstract, $_concrete, Closure $_default = null): Dependency {
+        public function Bind(string $_abstract, string $_concrete, Closure $_default = null): Dependency {
 
             if ($this->IsBound($_abstract)) throw new Exception\ClassExistsException($_concrete);
 
@@ -113,6 +121,14 @@ use ReflectionType;
             return $dependency;
         }
 
+        /**
+         *  Validate Binding session
+         * 
+         *  @param string $_abstract
+         *  @param string $_concrete
+         * 
+         *  @throws Exception When $_abstract and $_concrete is not suitable
+         */
         private function ValidateBinding(string $_abstract, string $_concrete) {
 
             if ($_abstract === $_concrete) return;
@@ -128,9 +144,17 @@ use ReflectionType;
         }
 
         /**
-         *  Resolve and return the object for when binding method has option
+         *  Validate the default generator of concrete class
+         * 
+         *  @param string $_concrete The concrete class
+         *  @param mixed $_option the default Generator
+         *  @param mixed $_flag
+         * 
+         *  @return mixed $_option
+         * 
+         *  @throws Exception when the $_option is not match rule
          */
-        protected function ValidateBindingDefault(string $_abstract, $_option, bool $_flag = self::BIND_NORMAL) {
+        protected function ValidateBindingDefault(string $_concrete, $_option, $_flag = self::BIND_TRANSIENT) {
 
             //  if $_option is closure(annonymouse function)
             //  the function passed must not have parameter 
@@ -147,33 +171,35 @@ use ReflectionType;
 
                 if (is_null($object)) throw new GlobalException('Function that pass to the binding method must return value!');
 
-                if (!($object instanceof $_abstract)) throw new GlobalException("Return object of function must be instance of the $_abstract class");
+                if (!($object instanceof $_concrete)) throw new GlobalException("Return object of function must be instance of the $_concrete class");
 
                 //  return the closure
                 return $_option;
             }
 
-            //  When binding singleton
-            //  We can pass an object to be a default object for calling singleton
-            //  if object is passed when BINDING_NORMAL session is occurring
-            //  throw exception
-            //echo $_flag;
-            if ($_flag !== self::BIND_SINGLETON) {
-                throw new GlobalException('Could not pass object to non singleton binding!');
-            }
+            // //  When binding singleton
+            // //  We can pass an object to be a default object for calling singleton
+            // //  if object is passed when BINDING_NORMAL session is occurring
+            // //  throw exception
+            // //echo $_flag;
+            // if ($_flag !== self::BIND_SINGLETON) {
+            //     throw new GlobalException('Could not pass object to non singleton binding!');
+            // }
 
-            //  if $_option is object
-            //  check if the object is instance of the bound class
-            if (!($_option instanceof $_abstract)) {
-                throw new GlobalException("Object that pass to the binding method is not instance of $_abstract");
-            }
+            // //  if $_option is object
+            // //  check if the object is instance of the bound class
+            // if (!($_option instanceof $_concrete)) {
+            //     throw new GlobalException("Object that pass to the binding method is not instance of $_concrete");
+            // }
 
             return $_option;
         }
 
         /**
          * Function to check an abstract is bound before
-         * @param string $_class 
+         * 
+         * @param string $_abstract
+         * 
          * @return bool
          */
         protected function IsBound(string $_abstract): bool {
@@ -182,11 +208,16 @@ use ReflectionType;
         }
 
         /**
-         *  Extender of Bind function that bind a dependency to a singleton object in object pool
+         *  Bind an abstact to concrete class as a singleton dependency
          * 
-         * @param Application\container\Dependency 
-         * @param object
-         * @return int the address of the allocated object
+         *  @param string $_abstract
+         *  @param string $_concrete
+         *  @param mixed $_default can be object of type $_concrete or a closure for generating object
+         *  for the binding
+         * 
+         *  @return Application\Container\Depedency
+         *  
+         *  @throws Exception
          */
         public function BindSingleton(string $_abstract, string $_concrete, $_default = null): Dependency {
             
@@ -199,7 +230,7 @@ use ReflectionType;
                 
                 if ($_default !== null) {
 
-                    if (!($_default instanceof $_abstract)) {
+                    if (!($_default instanceof $_concrete)) {
                         throw new GlobalException("Object pass to singleton binding method is not instance of $_abstract");
                     }
 
@@ -219,7 +250,16 @@ use ReflectionType;
             return $dependency;
         }
 
-        private function Build(string $_concrete) {
+        /**
+         *  Build a concrete class 
+         * 
+         *  @param string $_concrete The concrete class
+         * 
+         *  @return mixed a new object with totally-injected using constructor injection method
+         * 
+         *  @throws Exception
+         */
+        protected function Build(string $_concrete) {
 
             $class = new ReflectionClass($_concrete);
 
@@ -243,13 +283,33 @@ use ReflectionType;
             return $class->newInstanceArgs($params);
         }
 
-
-        protected function ResolveFunctionArguments(ReflectionFunctionAbstract $_function, int $_mode = 0): array {
+        /**
+         *  Resolve(inject) a callable's arguments,
+         *  
+         *  This method only Inject the type-hinted parameter,
+         *  for the untype-hinted parameter this method will act
+         *  depend on it's mode.
+         * 
+         *  This method has 2 mode: MODE_ALLOW_NULL and MODE_NOT_ALLOW_NULL,
+         *  MODE_ALLOW_NULL will skip and pass null to the function's parameter that is not type-hinted,
+         *  MODE_NOT_ALLOW_NULL will throw exception when the function's parameter that is not type-hinted.
+         * 
+         *  @param ReflectionFunctionAbstract $_function
+         *  @param mixed $_mode the mode that the arguments is resolved 
+         * 
+         *  @return array the arguments list
+         * 
+         *  @throws Exception
+         */
+        protected function ResolveFunctionArguments(ReflectionFunctionAbstract $_function, $_mode = self::MODE_NOT_ALLOW_NULL): array {
             $reflect_params = $_function->getParameters();
 
             if (empty($reflect_params)) return [];
             
+            //  The closure that process the reflection for parameters
+            //  $process is passed to array_map to return the argument list for the declaring function
             $process = function ($param) use ($_function, $_mode) {
+
                 //  if the parameter is default parameter
                 //  just return the function defined default value
                 if ($param->isDefaultValueAvailable()) {
@@ -257,36 +317,36 @@ use ReflectionType;
                     return $param->getDefaultValue();
                 }
 
-                $type = $param->getType();
-
                 $param_name = $param->getName();
                 $function_name = $_function->getName();
 
                 $function_class = ($_function instanceof ReflectionMethod) ? 
                                 $_function->getDeclaringClass()->getName().'::' : '';
-                //  If the param is not type-hinted 
-                //  throw exception
+
+                $type = $param->getType();
+                
+                //  Check if the parameter is not type-hinted
                 if (is_null($type)) {
 
                     //  The second parameter of ResolveFunctionArguments
                     //  to set the mode to allow non-type hinted parameter
                     //  the container will pass null value for this parameter 
-                    if ($_mode = self::MODE_ALLOW_NULL) return null;
+                    if ($_mode === self::MODE_ALLOW_NULL) return null;
 
                     throw new GlobalException("Parameter \"$param_name\" of function \"$function_class $function_name()\" is not type hinted");
                 } 
 
-                //  If the parameter is built-in type
-                //  throw exception
+                //  Check the parameter is type-hinted to a built-in type
                 if ($type->isBuiltin()) {
 
-                    if ($_mode = self::MODE_ALLOW_NULL) return null;
+                    if ($_mode === self::MODE_ALLOW_NULL) return null;
 
                     throw new GlobalException("Could not inject parameter $param_name with built-in($type)");
                 }
+
                 //  When the parameter is not built-in type
-                //  Check the parameter is type hinted to a class
-                //  Get the type hinted parameter's class
+                //  Check the parameter is type-hinted to a class
+                //  Get the type-hinted parameter's class
                 $class = $param->getClass();
 
                 //  If the parameter is not type hinted throw exception
@@ -304,7 +364,7 @@ use ReflectionType;
                 }
                 catch(GlobalException $e) {
                     
-                    //  If there isn't alias for the parameter in container
+                    //  If there isn't alias for the $abstract in container
                     //  Make an instance of it from the beginning
                     return $this->make($abstract);
                 }
@@ -316,15 +376,50 @@ use ReflectionType;
             return array_map($process, $reflect_params);
         }
 
-        public function Make($_abstract) {
+        /**
+         *  Make a concrete class with totally injection
+         * 
+         *  @param string $_concrete
+         *  
+         *  @return mixed
+         */
+        public function Make(string $_concrete) {
 
-            return $this->Build($_abstract);
+            return $this->Build($_concrete);
         }
 
+        /**
+         *  Method to call a callable 
+         * 
+         *  This Method can work in 4 form.
+         *  
+         *  #1 Call a global function
+         *  @param string $_option1 The name of the function
+         *  @param array  $_option2 The arguments list 
+         * 
+         *  #2 Call a closure
+         *  @param closure $_option1 The closure 
+         *  @param array $_option2  The arguments list
+         * 
+         *  #3 Call a method 
+         *  @param string $_option1 The class name
+         *  @param string $_option2 The method name
+         *  @param array $_option3  The arguments list
+         * 
+         *  @throws Exception when the class injection can't match rules
+         * 
+         *  #4 call a method*
+         *  @param array $_option1 The array with form [ 'class' => 'className' , 'method' => 'methodName']
+         *  @param array $_option2 The argument list
+         * 
+         *  @return mixed the result of the called callable
+         * 
+         *  @throws exception when the class injection can match rules
+         */
         public function Call($_option1, $_option2 = [] ,  array $_option3 = []) {
             if (is_string($_option1)) {
 
-                if (is_string($_option2)) return $this->CallMethodFromClass($_option2, $_option1, $_option3);
+                if (is_string($_option2)) return $this->CallMethodOfClass($_option2, $_option1, $_option3);
 
                 if (is_array($_option2)) return $this->CallFunction($_option1, $_option2);
                 
@@ -337,7 +432,7 @@ use ReflectionType;
 
                 if (is_null($method_name) || is_null($class_name)) throw new GlobalException();
 
-                $this->CallMethodFromClass($method_name, $class_name, $_option2);
+                $this->CallMethodOfClass($method_name, $class_name, $_option2);
             }
 
             if ($_option1 instanceof Closure) {
@@ -349,7 +444,18 @@ use ReflectionType;
             }
         }
 
-        private function CallMethodFromClass(string $_method, string $_class, array $_args) {
+        /**
+         *  Inject and Invoke a method of a class
+         *  
+         *  @param string $_method
+         *  @param string $_class
+         *  @param array $_args
+         *  
+         *  @return mixed
+         * 
+         *  @throws Exception when instantiate the class failed
+         */
+        protected function CallMethodOfClass(string $_method, string $_class, array $_args) {
 
             $class = new ReflectionClass($_class);
             $method = $class->getMethod($_method);
@@ -361,12 +467,27 @@ use ReflectionType;
 
             $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
 
-            $object = $this->Make($_class);
+            if ($method->isStatic()) {
+                return $method->invokeArgs(null, $resolved_args);
+            }
+            else {
+                $object = $this->Make($_class);
             
-            return $method->invokeArgs($object, $resolved_args);
+                return $method->invokeArgs($object, $resolved_args);
+            }
         }  
 
-        private function CallFunction(string $_function_name, array $_args) {
+        /**
+         *  Inject and Invoke a Global function
+         *  
+         *  @param string $_function_name
+         *  @param array $_args
+         * 
+         *  @return mixed
+         * 
+         *  @throws Exception when instantiate a parameter failed
+         */
+        protected function CallFunction(string $_function_name, array $_args) {
             $function = new ReflectionFunction($_function_name);
             $params = $function->getParameters();
 
@@ -378,7 +499,17 @@ use ReflectionType;
             return $function->invokeArgs($resolved_args);
         }
 
-        private function CallClosure(Closure $_function, array $_args) {
+        /**
+         *  Inject and Invoke a closure
+         * 
+         *  @param Closure $_function
+         *  @param array $_args
+         * 
+         *  @return mixed
+         * 
+         *  @throws Exception when instantiate a parameter failed
+         */
+        protected function CallClosure(Closure $_function, array $_args) {
             
             $function = new ReflectionFunction($_function);
             $params = $function->getParameters();
@@ -392,8 +523,11 @@ use ReflectionType;
         }
 
         /**
-         *  This method is used in call method to resolve the null arguments
-         *  that is return by ResolveFunctionArguments method in MODE_ALLOW_NULL mode
+         *  Pass arguments to the null Parameter that is resolved 
+         *  by ResolveFunctionArguments method in MODE_ALLOW_NULL mode.
+         *  
+         *  This method also pass again the argument that is specified in $_args
+         *  even if the specific parameter is injected before.
          * 
          *  @param array $_resolved_args 
          *  @param array $_parameters of type ReflectionParameter 
@@ -401,21 +535,22 @@ use ReflectionType;
          *  
          *  @return array
          */
-        private function ResolveNullArguments(array $_resolved_args, array $_parameters, array $_args): array {
+        protected function ResolveNullArguments(array $_resolved_args, array $_parameters, array $_args): array {
 
-            // index to iterate through $_parameters array
+            // index that used to iterate through $_parameters array
             $i = 0;
 
             $inject = function($_argument) use (&$_args, $_parameters, &$i) {
                 
                 $param_name = $_parameters[$i]->getName();
 
+                //  resolve when the paramether's name is specified in $_args
                 if (array_key_exists($param_name, $_args)) {
 
                     $param_type = $_parameters[$i]->getType();
 
                     //  If the parameter is not type-hinted
-                    //  then pass the argument with specific name
+                    //  then pass the argument with specified name
                     //  of the arguments list 
                     if (is_null($param_type)) {
                         ++$i;
@@ -428,7 +563,7 @@ use ReflectionType;
 
                     //  because ReflectionType::getType() return 'int'
                     //  and gettype() return 'integer' of type int
-                    //  so we must convert the result to 'integer' when the parameter's type is int
+                    //  so we have to convert the result to 'integer' when the parameter's type is int
                     $param_type_name = $param_type->getName() === 'int' ? 'integer' : $param_type->getName();
                     $argument_type_name = gettype($_args[$param_name]);
 
@@ -440,8 +575,17 @@ use ReflectionType;
 
                         return $ret;
                     }
+
+                    //  when parameter's type and argument's type is not the same
+                    //  and argument's type is not object
+                    //  pass null for this parameter
+                    if ($argument_type_name !== 'object') {
+                        ++$i;
+
+                        return null;
+                    }
                     
-                    //  If the parameter is not buitin type
+                    //  when the parameter is not buitin type,
                     //  Then check if the parameter's class
                     //  and the argument's class is the same
                     $param_class = $_parameters[$i]->getClass()->getName();
@@ -458,15 +602,15 @@ use ReflectionType;
                     }
                 }
 
-
+                // resolve when the resolved argument is passed null
+                // pass the first element of the numeric part of the $_args array
                 if ($_argument === null) {
-                    
-                        ++$i;
+                    ++$i;
 
-                        $ret = $_args[0] ?? null;
-                        array_splice($_args, 0, 1);
+                    $ret = $_args[0] ?? null;
+                    array_splice($_args, 0, 1);
 
-                        return $ret;
+                    return $ret;
                 }
 
                 ++$i;
@@ -478,6 +622,7 @@ use ReflectionType;
 
         /**
          *  Get object in object pool by address
+         * 
          *  @param int $_address;
          *  @return object
          */
@@ -492,11 +637,14 @@ use ReflectionType;
         }
 
         /**
+         *  Resolve object of an Application\Container\Dependency
          *  
          *  @param Application\Container\Dependency
-         *  @return object
+         *  @return mixed
+         * 
+         *  @throws Exception
          */
-        private function ResolveDependency(Dependency $_dependency) {
+        private function ResolveDependency(Dependency &$_dependency) {
             //  If the dependency is singleton
             //  resolve the object from dependency concrete
             if ($_dependency->IsSingleton()) {
@@ -537,10 +685,24 @@ use ReflectionType;
             return $this->build($_dependency->GetConcrete());
         }
 
+        /**
+         *  Instantiate an Application\Container\Dependency 's concrete
+         *  for singleton
+         * 
+         *  @param Application\Container\Dependency
+         * 
+         *  @throws Exception
+         */
         private function SetupSingleton(Dependency &$_dependency) {
 
             // $object = $_dependency->HasDefault() ? $_dependency->GetDefaultGenerator() 
             //             : $this->Build($_dependency->GetConcrete());
+
+            if (!$_dependency->IsSingleton()) return;
+
+            $address = $_dependency->GetSingletonAddress();
+
+            if ($address !== null) return;
 
             if ($_dependency->HasDefault()) {
                 $generator = $_dependency->GetDefaultGenerator();
@@ -559,6 +721,14 @@ use ReflectionType;
             $_dependency->SetSingletonAddress($pool_address);
         }
 
+        /**
+         *  Inject and Invoke Application\Container\Dependency 's
+         *  default generator
+         * 
+         *  @param Closure $_generator
+         *  
+         *  @return mixed
+         */
         private function ResolveDefaultGenerator(Closure $_generator) {
 
             $reflect_generator = new ReflectionFunction($_generator);
@@ -569,10 +739,13 @@ use ReflectionType;
         }
 
         /** 
-         *  Get a named dependency
+         *  Get a Bound instance 
+         * 
          *  @param string $_name
-         *  @param int 
-         *  @return object
+         *  
+         *  @return mix
+         * 
+         *  @throws Exception
          */
         public function Get(string $_name) {
 
@@ -584,14 +757,17 @@ use ReflectionType;
             return $this->ResolveDependency($dependency);
         }
 
+        /**
+         *  This method is call when a Dependency is bound
+         */
         public function BindEvent() {
             $this->SetAlias();
         }
 
         /**
-         * function that binds a name with a dependency of a class
-         * @param string $_name
-         * @param Application\Container\Dependency
+         *  binds an alias with the last bound dependency
+         * 
+         *  @throws Exception
          */
         protected function SetAlias() {
             $last_bound_dependency = end($this->bindStack);
