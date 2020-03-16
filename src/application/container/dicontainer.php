@@ -15,7 +15,7 @@
     use ReflectionType;
 
     /**
-     *  DIContiner class define a container that stores dependencies
+     *  DIContiner class defines a container that stores dependencies
      *  for the Dependency injection 
      */
     class DIContainer implements Icontainer{
@@ -25,12 +25,16 @@
         protected const BIND_TRANSIENT = 2;
 
         /**
-         *  Set of Application\Container\Dependency
+         *  Set of dependencies
+         *  
+         *  @var array Application\Container\Dependency
          */
         protected $bindMap;
 
         /**
-         *  set of registered alias for dependencies
+         *  Set of registered alias for dependencies
+         * 
+         *  @var array Application\Container\Dependency
          */
         protected $alias;
 
@@ -88,8 +92,13 @@
         }
 
         /**
-         * Function that add specific class to the the container's class list
-         * The concrete class is instantiate each time when getting object
+         *  Method that bind an abstract(classes/interfaces) to concrete class.
+         *  Concrete class must extends or imnplements abstract.
+         *  When abstract is bound by this function, the concrete class will be instantiate and inject 
+         *  for constructor each time by default.
+         *  the abstract is called to get an instance via the container.
+         *  This function has an option is to choose how the concrete class is instantiate by passing the third
+         *  parameter as a closure that return a modified concrete instance
          * 
          * @param string $_abstract The abstact class/interface to be injected
          * @param string $_concrete The concrete class to be instantiate
@@ -122,7 +131,8 @@
         }
 
         /**
-         *  Validate Binding session
+         *  Validate the binding between abstract and concrete class.
+         *  Concrete class must extend or implement abstract.
          * 
          *  @param string $_abstract
          *  @param string $_concrete
@@ -144,7 +154,9 @@
         }
 
         /**
-         *  Validate the default generator of concrete class
+         *  Validate the default generator of concrete class.
+         *  The default generator of a dependency is a closure that return must
+         *  return an instance of the concrete class.
          * 
          *  @param string $_concrete The concrete class
          *  @param mixed $_option the default Generator
@@ -165,7 +177,7 @@
                 $params = $func->getParameters();
 
                 //if (!empty($params)) throw new GlobalException('Function that passed to the binding method must not have paramater!');
-                $params = $this->ResolveFunctionArguments($func);
+                $params = $this->InjectFunctionParameters($func);
 
                 $object = $func->invokeArgs($params);
 
@@ -196,11 +208,11 @@
         }
 
         /**
-         * Function to check an abstract is bound before
+         *  method to check an abstract is bound before
          * 
-         * @param string $_abstract
+         *  @param string $_abstract
          * 
-         * @return bool
+         *  @return bool
          */
         protected function IsBound(string $_abstract): bool {
 
@@ -208,7 +220,10 @@
         }
 
         /**
-         *  Bind an abstact to concrete class as a singleton dependency
+         *  Bind an abstact to a concrete class as a singleton dependency.
+         *  A singleton dependency is a dependenccy that it's concrete instance
+         *  is instantiated just one time and is stored and managed by the container.
+         *  A singleton dependency's concrete instance is shared over a request context.
          * 
          *  @param string $_abstract
          *  @param string $_concrete
@@ -275,7 +290,7 @@
                 return new $_concrete;
             }
 
-            $params = $this->ResolveFunctionArguments($constructor);
+            $params = $this->InjectFunctionParameters($constructor);
 
             //  If constructor has no parameter
             if (empty($params)) return $class->newInstance();
@@ -288,11 +303,16 @@
          *  
          *  This method only Inject the type-hinted parameter,
          *  for the untype-hinted parameter this method will act
-         *  depend on it's mode.g
+         *  depend on it's second parameter.
+         *  
+         *  The conatainer firstly check the type of the parameter.
+         *  If the type is bound as abstract before, the container just get the instance
+         *  and inject it as argument.
+         *  If the type is not bound, the container will build and inject.
          * 
          *  This method has 2 mode: MODE_ALLOW_NULL and MODE_NOT_ALLOW_NULL,
-         *  MODE_ALLOW_NULL will skip and pass null to the function's parameter that is not type-hinted,
-         *  MODE_NOT_ALLOW_NULL will throw exception when the function's parameter that is not type-hinted.
+         *  MODE_ALLOW_NULL will skip and pass null to the untype-hinted parameter 
+         *  MODE_NOT_ALLOW_NULL will throw exception when the parameter that is not type-hinted.
          * 
          *  @param ReflectionFunctionAbstract $_function
          *  @param mixed $_mode the mode that the arguments is resolved 
@@ -301,7 +321,7 @@
          * 
          *  @throws Exception
          */
-        protected function ResolveFunctionArguments(ReflectionFunctionAbstract $_function, $_mode = self::MODE_NOT_ALLOW_NULL): array {
+        protected function InjectFunctionParameters(ReflectionFunctionAbstract $_function, $_mode = self::MODE_NOT_ALLOW_NULL): array {
             $reflect_params = $_function->getParameters();
 
             if (empty($reflect_params)) return [];
@@ -328,7 +348,7 @@
                 //  Check if the parameter is not type-hinted
                 if (is_null($type)) {
 
-                    //  The second parameter of ResolveFunctionArguments
+                    //  The second parameter of InjectFunctionParameters
                     //  to set the mode to allow non-type hinted parameter
                     //  the container will pass null value for this parameter 
                     if ($_mode === self::MODE_ALLOW_NULL) return null;
@@ -372,7 +392,7 @@
                 //  End $process closure context
             };
 
-            //  $this->ResolveFunctionArguments context
+            //  $this->InjectFunctionParameters context
             return array_map($process, $reflect_params);
         }
 
@@ -389,9 +409,19 @@
         }
 
         /**
-         *  Method to call a callable 
+         *  Method to call a callable.
          * 
-         *  This Method can work in 4 form.
+         *  Before invoking the callable, the container will inject parameters.
+         *  When arguments is pass for the callable's parameters, the container 
+         *  will validate arguments. An argument will be pass to a parameter 
+         *  If the argument's type matches the parameter type.
+         *  
+         *  Arguments is and array can be numeric, associative or both. 
+         *  Associative part use key to define the parameter's name
+         *  and it's value is the argument to pass. Numeric part is pass to parameters 
+         *  by it's order.
+         * 
+         *  This Method can work in 4 forms.
          *  
          *  #1 Call a global function
          *  @param string $_option1 The name of the function
@@ -460,21 +490,13 @@
             $class = new ReflectionClass($_class);
             $method = $class->getMethod($_method);
 
-            $params = $method->getParameters();
+            $resolved_args = $this->ResolveCallableParameters($method, $_args);
 
-            //  Get resolved set of arguments that allowed non-type hinted
-            $resolved_args = $this->ResolveFunctionArguments($method, self::MODE_ALLOW_NULL);
+            $object = $method->isStatic() ? null : $this->Make($_class);
 
-            $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
-
-            if ($method->isStatic()) {
-                return $method->invokeArgs(null, $resolved_args);
-            }
-            else {
-                $object = $this->Make($_class);
-            
-                return $method->invokeArgs($object, $resolved_args);
-            }
+            // Invoking a method need an instance of the class do the method
+            // the $object is null when the method is static
+            return $method->invokeArgs($object, $resolved_args);
         }  
 
         /**
@@ -488,13 +510,10 @@
          *  @throws Exception when instantiate a parameter failed
          */
         protected function CallFunction(string $_function_name, array $_args) {
+            
             $function = new ReflectionFunction($_function_name);
-            $params = $function->getParameters();
 
-            //  Get resolved set of arguments that allowed non-type hinted
-            $resolved_args = $this->ResolveFunctionArguments($function, self::MODE_ALLOW_NULL);
-
-            $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
+            $resolved_args = $this->ResolveCallableParameters($function, $_args);
 
             return $function->invokeArgs($resolved_args);
         }
@@ -512,21 +531,32 @@
         protected function CallClosure(Closure $_function, array $_args) {
             
             $function = new ReflectionFunction($_function);
-            $params = $function->getParameters();
 
-            //  Get resolved set of arguments that allowed non-type hinted
-            $resolved_args = $this->ResolveFunctionArguments($function, self::MODE_ALLOW_NULL);
-
-            $resolved_args = $this->ResolveNullArguments($resolved_args, $params, $_args);
+            $resolved_args = $this->ResolveCallableParameters($function, $_args);
 
             return $function->invokeArgs($resolved_args);            
         }
 
         /**
-         *  Pass arguments to the null Parameter that is resolved 
-         *  by ResolveFunctionArguments method in MODE_ALLOW_NULL mode.
          *  
-         *  This method also pass again the argument that is specified in $_args
+         */
+        protected function ResolveCallableParameters(ReflectionFunctionAbstract $_callable, array $_args = []): array {
+
+            $resolved_args = $this->InjectFunctionParameters($_callable, self::MODE_ALLOW_NULL);
+
+            $resolved_args = $this->PassUserArguments($resolved_args, $_callable, $_args);
+
+            return $resolved_args;
+        }
+
+
+        /**
+         *  Pass arguments to untype-hinted Parameter that is resolved.
+         * 
+         *  This method is call after the injection of a callable's parameters
+         *  when InjectFunctionParameters method in MODE_ALLOW_NULL mode.
+         *  
+         *  This method will pass again the argument that is specified in $_args
          *  even if the specific parameter is injected before.
          * 
          *  @param array $_resolved_args 
@@ -535,19 +565,20 @@
          *  
          *  @return array
          */
-        protected function ResolveNullArguments(array $_resolved_args, array $_parameters, array $_args): array {
+        protected function PassUserArguments(array $_resolved_args, ReflectionFunctionAbstract $_callable, array $_args): array {
 
             // index that used to iterate through $_parameters array
             $i = 0;
+            $parameters = $_callable->getParameters();
 
-            $inject = function($_argument) use (&$_args, $_parameters, &$i) {
+            $inject = function($_argument) use (&$_args, $parameters, &$i) {
                 
-                $param_name = $_parameters[$i]->getName();
+                $param_name = $parameters[$i]->getName();
 
                 //  resolve when the paramether's name is specified in $_args
                 if (array_key_exists($param_name, $_args)) {
 
-                    $param_type = $_parameters[$i]->getType();
+                    $param_type = $parameters[$i]->getType();
 
                     //  If the parameter is not type-hinted
                     //  then pass the argument with specified name
@@ -588,7 +619,7 @@
                     //  when the parameter is not buitin type,
                     //  Then check if the parameter's class
                     //  and the argument's class is the same
-                    $param_class = $_parameters[$i]->getClass()->getName();
+                    $param_class = $parameters[$i]->getClass()->getName();
                     $reflection = new ReflectionObject($_args[$param_name]);
                     $argument_class = $reflection->getName();
 
@@ -733,7 +764,7 @@
 
             $reflect_generator = new ReflectionFunction($_generator);
 
-            $args = $this->ResolveFunctionArguments($reflect_generator);
+            $args = $this->InjectFunctionParameters($reflect_generator);
 
             return $reflect_generator->invokeArgs($args);
         }
