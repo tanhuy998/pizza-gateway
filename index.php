@@ -3,10 +3,11 @@
     include __DIR__.'/src/autoload/autoload.php';
 
     use Application\Container\DIContainer as Container;
-use Application\Container\DIContainer;
-use Dependencies\Http\Request as Request;
-use Dependencies\Http\Respone;
-use Dependencies\Router\Router as Router;
+    use Application\Container\DIContainer;
+    use Application\Container\IContainer;
+    use Dependencies\Http\Request as Request;
+    use Dependencies\Http\Respone;
+    use Dependencies\Router\Router as Router;
     use Dependencies\Router\Route as Route;
     use Dependencies\HttpHandler\HttpHandler as HttpHandler;
 
@@ -15,44 +16,49 @@ use Dependencies\Router\Router as Router;
     
     header('Access-Control-Allow-Origin: *');
 
-    $request = Dependencies\HttpHandler\HttpHandler::Request();
+    // $request = Dependencies\HttpHandler\HttpHandler::Request();
 
-    $container->BindSingleton(Dependencies\Router\Router::class, Dependencies\Router\Router::class, 
-            function () use($container) {
+    // $container->BindSingleton(Dependencies\Router\Router::class, Dependencies\Router\Router::class, 
+    //         function () use($container) {
                 
-                return new Dependencies\Router\Router($container);
-            })->name('router');
+    //             return new Dependencies\Router\Router($container);
+    //         })->name('router');
 
-    $container->BindSingleton(Dependencies\Http\Request::class, Dependencies\Http\Request::class,
-            function () use ($request) {
-                return $request;
-            })->name('request');
+    // $container->BindSingleton(Dependencies\Http\Request::class, Dependencies\Http\Request::class,
+    //         function () {
+    //             return new Request('PUT');
+    //         })->name('request');
 
-    $container->BindSingleton(Dependencies\Http\Respone::class, Dependencies\Http\Respone::class,
-            function () use($container) {
+    // $container->BindSingleton(Dependencies\Http\Respone::class, Dependencies\Http\Respone::class,
+    //         function () use($container) {
 
-                return new Dependencies\Http\Respone(200, $container);
-            });
+    //             return new Dependencies\Http\Respone(200, $container);
+    //         });
 
-    $router = $container->Get(Dependencies\Router\Router::class);
+    // $router = $container->Get(Dependencies\Router\Router::class);
 
-    $router->Get('/test', function (DIContainer $container) {
-        //$container = Container::GetInstance();
+    // $router->Get('/test', function (IContainer $container) {
 
-        return $container->Call(Request::class, 'Method');
-    });
+    //     return $container->Call(function ($a,Request $b, $c) {
+    //         var_dump($a);
+    //     }, ['c' => 'a', 1 ,'b' => new Request('POST')]);
+    // });
 
-    $router->Get('/testcontroller/{id}', 'TestController::Index');
+    // $router->Get('/testcontroller/{id}', 'TestController::Index');
 
-    $respone = $router->Handle($request);
+    // $respone = $router->Handle($request);
 
-    $respone->send();
-    //echo $_SERVER['REQUEST_METHOD'];
-    // $res->Cookie('name', '2');
-    // $res->Header('Content-Type', 'application/json');
-    // $res->Render('abc');
-    // $res->Render('123', Respone::RENDER_OVERIDE);
-    // $res->Send();
+    // $respone->send();
+
+    $func = function ($a,Request $b, $c) {
+        echo $a;
+    };
+
+    $reflect = new ReflectionFunction($func);
+
+    $a = $container->InjectFunctionParameters($reflect, [1, new Request('POST'), 2], Container::MODE_ALLOW_NULL);
+
+    var_dump($a);
 
 
 

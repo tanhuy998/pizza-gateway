@@ -7,19 +7,22 @@
     use Application\Container\Exception\ClassExistsException;
     use Closure;
     use Exception as GlobalException;
-    use ReflectionClass;
+use GlobIterator;
+use Reflection;
+use ReflectionClass;
     use ReflectionFunction;
     use ReflectionFunctionAbstract;
     use ReflectionMethod;
     use ReflectionObject;
-    use ReflectionType;
+use ReflectionParameter;
+use ReflectionType;
 
     /**
      *  DIContiner class defines a container that stores dependencies
      *  for the Dependency injection 
      */
     class DIContainer implements Icontainer{
-        protected const MODE_ALLOW_NULL = 100;
+        public const MODE_ALLOW_NULL = 100;
         protected const MODE_NOT_ALLOW_NULL = 101;
         protected const BIND_SINGLETON = 1;
         protected const BIND_TRANSIENT = 2;
@@ -301,99 +304,134 @@
         /**
          *  Resolve(inject) a callable's arguments,
          *  
-         *  This method only Inject the type-hinted parameter,
-         *  for the untype-hinted parameter this method will act
-         *  depend on it's second parameter.
+         *  Container only Inject the parameter that is type-hinted to a class.
          *  
          *  The conatainer firstly check the type of the parameter.
          *  If the type is bound as abstract before, the container just get the instance
          *  and inject it as argument.
-         *  If the type is not bound, the container will build and inject.
+         *  If the type is not bound, the container will build and inject the parameter.
+         *  
+         *  The third parameter of this method is the instruction to tell the container
+         *  what parameter would be injected. When a parameter is needed to be injected, 
+         *  just assign null value to the element of the $_instruction array related to 
+         *  the specific parameter.
          * 
-         *  This method has 2 mode: MODE_ALLOW_NULL and MODE_NOT_ALLOW_NULL,
-         *  MODE_ALLOW_NULL will skip and pass null to the untype-hinted parameter 
-         *  MODE_NOT_ALLOW_NULL will throw exception when the parameter that is not type-hinted.
-         * 
+         *  This method just "read" instruction of numeric part of the $_instruction array.
+         *  The order of the instructions is related to the order of the injected function's parameters
+         *   
          *  @param ReflectionFunctionAbstract $_function
          *  @param mixed $_mode the mode that the arguments is resolved 
          * 
-         *  @return array the arguments list
+         *  @return array the injected list
          * 
          *  @throws Exception
          */
-        protected function InjectFunctionParameters(ReflectionFunctionAbstract $_function, $_mode = self::MODE_NOT_ALLOW_NULL): array {
-            $reflect_params = $_function->getParameters();
+        public function InjectFunctionParameters(ReflectionFunctionAbstract $_function, array $_instruction = [], $_mode = self::MODE_NOT_ALLOW_NULL): array {
 
-            if (empty($reflect_params)) return [];
+            $parameters = $_function->getParameters();
+            
+            if (empty($parameters)) return [];
+            
+            if (count($parameters) > count($_instruction)) {
+                $_instruction = array_pad($_instruction, count($parameters), null);
+            }
+            
+            $error = false;
+
+            //  To iterate $_reference array
+            $i = 0;
             
             //  The closure that process the reflection for parameters
-            //  $process is passed to array_map to return the argument list for the declaring function
-            $process = function ($param) use ($_function, $_mode) {
-
-                //  if the parameter is default parameter
-                //  just return the function defined default value
-                if ($param->isDefaultValueAvailable()) {
-
-                    return $param->getDefaultValue();
-                }
-
-                $param_name = $param->getName();
-                $function_name = $_function->getName();
-
-                $function_class = ($_function instanceof ReflectionMethod) ? 
-                                $_function->getDeclaringClass()->getName().'::' : '';
-
-                $type = $param->getType();
+            //  $process is passed to array_map() to return the argument list for the declaring function
+            $process = function (ReflectionParameter $param) use (&$error, $_instruction, &$i, $_mode) {
                 
-                //  Check if the parameter is not type-hinted
-                if (is_null($type)) {
+                $return_arg = null;
 
-                    //  The second parameter of InjectFunctionParameters
-                    //  to set the mode to allow non-type hinted parameter
-                    //  the container will pass null value for this parameter 
-                    if ($_mode === self::MODE_ALLOW_NULL) return null;
-
-                    throw new GlobalException("Parameter \"$param_name\" of function \"$function_class $function_name()\" is not type hinted");
-                } 
-
-                //  Check the parameter is type-hinted to a built-in type
-                if ($type->isBuiltin()) {
-
-                    if ($_mode === self::MODE_ALLOW_NULL) return null;
-
-                    throw new GlobalException("Could not inject parameter $param_name with built-in($type)");
-                }
-
-                //  When the parameter is not built-in type
-                //  Check the parameter is type-hinted to a class
-                //  Get the type-hinted parameter's class
-                $class = $param->getClass();
-
-                //  If the parameter is not type hinted throw exception
-                if (is_null($class)) {
-                    throw new GlobalException("Could not inject parameter $param_name of mix type!");
-                }
-
-                //  get the name of the parameter's type hinted class
-                $abstract = $class->getName();
-
-                try {
-                    //  If The class name(Interface/Class) is bound before
-                    //  inject this abstract as bound to the list
-                    return $this->Get($abstract);
-                }
-                catch(GlobalException $e) {
+                if ($_instruction[$i] != null) {
                     
-                    //  If there isn't alias for the $abstract in container
-                    //  Make an instance of it from the beginning
-                    return $this->make($abstract);
+                    return $_instruction[$i++];
                 }
+                
+                try {
+                    //  $this->IsInjectable() will throw exception when the parameter
+                    //  can't be injected
+                    if ($this->IsInjectable($param)) {
+                        //  if the parameter is default parameter
+                        //  just return the function defined default value
+                        if ($param->isDefaultValueAvailable()) {
+                                
+                            $return_arg = $param->getDefaultValue();
+                        }
+                        
+                        $abstract = $param->getClass()->getName();
 
+                        if (!$error) {
+                            try {
+                                //  If The class name(Interface/Class) is bound before
+                                //  inject this abstract as bound to the list
+                                $return_arg = $this->Get($abstract);
+
+                                //++$i;
+
+                                //return $ret;
+                            }
+                            catch(GlobalException $e) {
+                                //++$i;
+                                //  If there isn't alias for the $abstract in container
+                                //  Make an instance of it from the beginning
+                                //return $this->make($abstract);
+                                $return_arg = $this->make($abstract);
+                            }
+                        }
+                    }
+                }
+                catch (GlobalException $ex) {
+                    //++$i;
+
+                    if ($param->isDefaultValueAvailable()) {
+
+                        $return_arg = $param->getDefaultValue();
+                    }
+
+                    if ($_mode == self::MODE_NOT_ALLOW_NULL) {
+
+                        if (is_null($return_arg)) {
+
+                            $error = true;
+
+                            $return_arg = $ex;
+                        }
+                    }
+                }
+                
+                ++$i;
+                return $return_arg;
                 //  End $process closure context
             };
 
+            $resolve_args = array_map($process, $parameters);
+
+            //  error reporting
+            if ($error && $_mode == self::MODE_NOT_ALLOW_NULL) {
+                $this->ReportInjectionError($resolve_args);
+            }
             //  $this->InjectFunctionParameters context
-            return array_map($process, $reflect_params);
+            return $resolve_args;
+        }
+
+        private function ReportInjectionError(array $_error) {
+
+            $process = function ($_element) {
+                if ($_element instanceof GlobalException) {
+                    return $_element->getMessage();
+                } 
+            };
+
+            $error_params =  array_filter($_error, $process);
+
+            $message = implode(', ', $error_params);
+
+            throw new GlobalException($message);
         }
 
         /**
@@ -542,10 +580,10 @@
          */
         protected function ResolveCallableParameters(ReflectionFunctionAbstract $_callable, array $_args = []): array {
 
-            $resolved_args = $this->InjectFunctionParameters($_callable, self::MODE_ALLOW_NULL);
-
-            $resolved_args = $this->PassUserArguments($resolved_args, $_callable, $_args);
-
+            $reference = $this->PassUserArguments($_callable, $_args);
+            
+            $resolved_args = $this->InjectFunctionParameters($_callable, $reference, self::MODE_ALLOW_NULL);
+            
             return $resolved_args;
         }
 
@@ -565,29 +603,31 @@
          *  
          *  @return array
          */
-        protected function PassUserArguments(array $_resolved_args, ReflectionFunctionAbstract $_callable, array $_args): array {
+        protected function PassUserArguments(ReflectionFunctionAbstract $_callable, array $_args): array {
 
             // index that used to iterate through $_parameters array
-            $i = 0;
-            $parameters = $_callable->getParameters();
-
-            $inject = function($_argument) use (&$_args, $parameters, &$i) {
+            //$i = 0;
+            
+            $inject = function(ReflectionParameter $_parameter) use (&$_args) {
                 
-                $param_name = $parameters[$i]->getName();
+                $param_name = $_parameter->getName();
 
+                $key = array_key_exists($param_name, $_args) ? $param_name : 0;
+                
                 //  resolve when the paramether's name is specified in $_args
-                if (array_key_exists($param_name, $_args)) {
-
-                    $param_type = $parameters[$i]->getType();
+                
+                if (array_key_exists($key, $_args)) {
+                    $param_type = $_parameter->getType();
 
                     //  If the parameter is not type-hinted
                     //  then pass the argument with specified name
                     //  of the arguments list 
                     if (is_null($param_type)) {
-                        ++$i;
+                    
+                        $ret = $_args[$key];
 
-                        $ret = $_args[$param_name];
-                        unset($_args[$param_name]);
+                        if (is_string($key)) unset($_args[$key]);
+                        else array_splice($_args, 0, 1);
 
                         return $ret;
                     }
@@ -596,13 +636,14 @@
                     //  and gettype() return 'integer' of type int
                     //  so we have to convert the result to 'integer' when the parameter's type is int
                     $param_type_name = $param_type->getName() === 'int' ? 'integer' : $param_type->getName();
-                    $argument_type_name = gettype($_args[$param_name]);
+                    $argument_type_name = gettype($_args[$key]);
 
                     if ($param_type_name == $argument_type_name) {
-                        ++$i;
 
-                        $ret = $_args[$param_name];
-                        unset($_args[$param_name]);
+                        $ret = $_args[$key];
+                        
+                        if (is_string($key)) unset($_args[$key]);
+                        else array_splice($_args, 0, 1);
 
                         return $ret;
                     }
@@ -611,7 +652,6 @@
                     //  and argument's type is not object
                     //  pass null for this parameter
                     if ($argument_type_name !== 'object') {
-                        ++$i;
 
                         return null;
                     }
@@ -619,36 +659,86 @@
                     //  when the parameter is not buitin type,
                     //  Then check if the parameter's class
                     //  and the argument's class is the same
-                    $param_class = $parameters[$i]->getClass()->getName();
-                    $reflection = new ReflectionObject($_args[$param_name]);
+                    $param_class = $_parameter->getClass()->getName();
+                    $reflection = new ReflectionObject($_args[$key]);
                     $argument_class = $reflection->getName();
 
                     if ($param_class === $argument_class) {
-                        ++$i;
 
-                        $ret = $_args[$param_name];
-                        unset($_args[$param_name]);
+                        $ret = $_args[$key];
+                        
+                        if (is_string($key)) unset($_args[$key]);
+                        else array_splice($_args, 0, 1);
 
                         return $ret;
                     }
+
+                
+
+                // // resolve when the resolved argument is passed null
+                // // pass the first element of the numeric part of the $_args array
+                // if ($_argument === null) {
+                //     ++$i;
+
+                //     $ret = $_args[0] ?? null;
+                //     array_splice($_args, 0, 1);
+
+                //     return $ret;
+                // }
                 }
-
-                // resolve when the resolved argument is passed null
-                // pass the first element of the numeric part of the $_args array
-                if ($_argument === null) {
-                    ++$i;
-
-                    $ret = $_args[0] ?? null;
-                    array_splice($_args, 0, 1);
-
-                    return $ret;
-                }
-
-                ++$i;
-                return $_argument;
             };
 
-            return array_map($inject ,$_resolved_args);
+            $parameters = $_callable->getParameters();
+
+            return array_map($inject , $parameters);
+        }
+
+        protected function IsInjectable(ReflectionParameter $_parameter) {
+            // $param_name = $_parameter->getName();
+
+            // $function = $_parameter->getDeclaringFunction();
+
+            // $function_name = $function->getName();
+
+            // $function_class = ($function instanceof ReflectionMethod) ? 
+            //                     $function->getDeclaringClass()->getName().'::' : '';
+
+            // $type = $_parameter->getType();
+                
+            //     //  Check if the parameter is not type-hinted
+            // if (is_null($type)) {
+
+            //     //  The second parameter of InjectFunctionParameters
+            //     //  to set the mode to allow non-type hinted parameter
+            //     //  the container will pass null value for this parameter 
+            //     //if ($_mode === self::MODE_ALLOW_NULL) return null;
+
+            //     throw new GlobalException("Parameter \"$param_name\" of function \"$function_class $function_name()\" is not type hinted");
+            // } 
+
+            //     //  Check the parameter is type-hinted to a built-in type
+            // if ($type->isBuiltin()) {
+
+            //         //if ($_mode === self::MODE_ALLOW_NULL) return null;
+
+            //     throw new GlobalException("Could not inject parameter $param_name with built-in($type)");
+            // }
+
+            //  When the parameter is not built-in type
+            //  Check the parameter is type-hinted to a class
+            //  Get the type-hinted parameter's class
+            $class = $_parameter->getClass();
+
+            //  If the parameter is not type hinted throw exception
+            if (is_null($class)) {
+                //throw new GlobalException("Could not inject parameter $param_name of mix type!");
+                throw new GlobalException($_parameter->getName());
+            }
+
+            //  get the name of the parameter's type hinted class
+            //$abstract = $class->getName();
+
+            return true;
         }
 
         /**
@@ -669,7 +759,7 @@
 
         /**
          *  Resolve object of an Application\Container\Dependency
-         *  
+         *   
          *  @param Application\Container\Dependency
          *  @return mixed
          * 
