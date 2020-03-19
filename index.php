@@ -56,9 +56,9 @@
 
     $reflect = new ReflectionFunction($func);
 
-    $a = $container->InjectFunctionParameters($reflect, [1, new Request('POST'), 2], Container::MODE_ALLOW_NULL);
+    $a = $container->InjectFunctionParameters($reflect, [new Request('POST'), null, 2], Container::MODE_ALLOW_NULL);
 
-    var_dump($a);
+    var_dump($a[0]);
 
 
 

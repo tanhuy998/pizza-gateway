@@ -22,7 +22,7 @@ use ReflectionType;
      *  for the Dependency injection 
      */
     class DIContainer implements Icontainer{
-        public const MODE_ALLOW_NULL = 100;
+        protected const MODE_ALLOW_NULL = 100;
         protected const MODE_NOT_ALLOW_NULL = 101;
         protected const BIND_SINGLETON = 1;
         protected const BIND_TRANSIENT = 2;
@@ -326,7 +326,7 @@ use ReflectionType;
          * 
          *  @throws Exception
          */
-        public function InjectFunctionParameters(ReflectionFunctionAbstract $_function, array $_instruction = [], $_mode = self::MODE_NOT_ALLOW_NULL): array {
+        protected function InjectFunctionParameters(ReflectionFunctionAbstract $_function, $_mode = self::MODE_NOT_ALLOW_NULL, array $_instruction = []): array {
 
             $parameters = $_function->getParameters();
             
@@ -582,7 +582,7 @@ use ReflectionType;
 
             $reference = $this->PassUserArguments($_callable, $_args);
             
-            $resolved_args = $this->InjectFunctionParameters($_callable, $reference, self::MODE_ALLOW_NULL);
+            $resolved_args = $this->InjectFunctionParameters($_callable, self::MODE_ALLOW_NULL, $reference);
             
             return $resolved_args;
         }
