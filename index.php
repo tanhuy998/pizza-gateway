@@ -2,7 +2,8 @@
     include __DIR__.'/src/init.php';
     include __DIR__.'/src/autoload/autoload.php';
 
-    use Application\Container\DIContainer as Container;
+use Application\Container\Dependency;
+use Application\Container\DIContainer as Container;
     use Application\Container\DIContainer;
     use Application\Container\IContainer;
     use Dependencies\Http\Request as Request;
@@ -50,15 +51,15 @@
 
     // $respone->send();
 
-    $func = function ($a,Request $b, $c) {
+    $func = function (string $a, $b, Dependency $c) {
         echo $a;
     };
 
     $reflect = new ReflectionFunction($func);
 
-    $a = $container->InjectFunctionParameters($reflect, [new Request('POST'), null, 2], Container::MODE_ALLOW_NULL);
+    $a = $container->PassArguments($reflect, ['a' => '1','b' => 2]);
 
-    var_dump($a[0]);
+    var_dump($a);
 
 
 

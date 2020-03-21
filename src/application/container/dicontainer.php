@@ -580,7 +580,7 @@ use ReflectionType;
          */
         protected function ResolveCallableParameters(ReflectionFunctionAbstract $_callable, array $_args = []): array {
 
-            $reference = $this->PassUserArguments($_callable, $_args);
+            $reference = $this->PassArguments($_callable, $_args);
             
             $resolved_args = $this->InjectFunctionParameters($_callable, self::MODE_ALLOW_NULL, $reference);
             
@@ -590,12 +590,10 @@ use ReflectionType;
 
         /**
          *  Pass arguments to untype-hinted Parameter that is resolved.
-         * 
-         *  This method is call after the injection of a callable's parameters
-         *  when InjectFunctionParameters method in MODE_ALLOW_NULL mode.
          *  
-         *  This method will pass again the argument that is specified in $_args
-         *  even if the specific parameter is injected before.
+         *  This method only use the associative part of the second parameter as the
+         *  arguments list to pass the the specific parameter
+         * 
          * 
          *  @param array $_resolved_args 
          *  @param array $_parameters of type ReflectionParameter 
@@ -603,7 +601,7 @@ use ReflectionType;
          *  
          *  @return array
          */
-        protected function PassUserArguments(ReflectionFunctionAbstract $_callable, array $_args): array {
+        public function PassArguments(ReflectionFunctionAbstract $_callable, array $_args): array {
 
             // index that used to iterate through $_parameters array
             //$i = 0;
@@ -612,22 +610,25 @@ use ReflectionType;
                 
                 $param_name = $_parameter->getName();
 
-                $key = array_key_exists($param_name, $_args) ? $param_name : 0;
-                
                 //  resolve when the paramether's name is specified in $_args
-                
-                if (array_key_exists($key, $_args)) {
+                if (array_key_exists($param_name, $_args)) {
+                    
+                    if ($_args[$param_name] === null && $_parameter->allowsNull()) {
+                        $ret = $_args[$param_name];
+
+                        unset($_args[$param_name]);
+
+                        return $ret;
+                    }
+
                     $param_type = $_parameter->getType();
 
-                    //  If the parameter is not type-hinted
-                    //  then pass the argument with specified name
-                    //  of the arguments list 
+                    //var_dump($_args[$key]);
                     if (is_null($param_type)) {
-                    
-                        $ret = $_args[$key];
 
-                        if (is_string($key)) unset($_args[$key]);
-                        else array_splice($_args, 0, 1);
+                        $ret = $_args[$param_name];
+
+                        unset($_args[$param_name]);
 
                         return $ret;
                     }
@@ -636,14 +637,13 @@ use ReflectionType;
                     //  and gettype() return 'integer' of type int
                     //  so we have to convert the result to 'integer' when the parameter's type is int
                     $param_type_name = $param_type->getName() === 'int' ? 'integer' : $param_type->getName();
-                    $argument_type_name = gettype($_args[$key]);
+                    $argument_type_name = gettype($_args[$param_name]);
 
                     if ($param_type_name == $argument_type_name) {
 
-                        $ret = $_args[$key];
+                        $ret = $_args[$param_name];
                         
-                        if (is_string($key)) unset($_args[$key]);
-                        else array_splice($_args, 0, 1);
+                        unset($_args[$param_name]);
 
                         return $ret;
                     }
@@ -660,31 +660,17 @@ use ReflectionType;
                     //  Then check if the parameter's class
                     //  and the argument's class is the same
                     $param_class = $_parameter->getClass()->getName();
-                    $reflection = new ReflectionObject($_args[$key]);
+                    $reflection = new ReflectionObject($_args[$param_name]);
                     $argument_class = $reflection->getName();
 
                     if ($param_class === $argument_class) {
-
-                        $ret = $_args[$key];
                         
-                        if (is_string($key)) unset($_args[$key]);
-                        else array_splice($_args, 0, 1);
+                        $ret = $_args[$param_name];
+                        
+                        unset($_args[$param_name]);
 
                         return $ret;
                     }
-
-                
-
-                // // resolve when the resolved argument is passed null
-                // // pass the first element of the numeric part of the $_args array
-                // if ($_argument === null) {
-                //     ++$i;
-
-                //     $ret = $_args[0] ?? null;
-                //     array_splice($_args, 0, 1);
-
-                //     return $ret;
-                // }
                 }
             };
 
