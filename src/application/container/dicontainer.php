@@ -6,16 +6,13 @@
     use Application\Container\Dependency as Dependency;
     use Application\Container\Exception\ClassExistsException;
     use Closure;
-    use Exception as GlobalException;
-use GlobIterator;
-use Reflection;
-use ReflectionClass;
+    use Exception as GlobalException;   
+    use ReflectionClass;
     use ReflectionFunction;
     use ReflectionFunctionAbstract;
     use ReflectionMethod;
     use ReflectionObject;
-use ReflectionParameter;
-use ReflectionType;
+    use ReflectionParameter;
 
     /**
      *  DIContiner class defines a container that stores dependencies
@@ -43,11 +40,15 @@ use ReflectionType;
 
         /**
          *  stores concretes's object that is bind as singleton 
+         *  
+         *  @var array
          */
         private $objectPool;
 
         /**
          *  To trace the binding status for binding events
+         * 
+         *  @var array
          */
         protected $bindStack;
 
@@ -56,6 +57,8 @@ use ReflectionType;
          *  To make the whole script use just one container object 
          *  for better accurate of injecting dependencies 
          *  and prevents confusions while using
+         * 
+         *  @var Application\Container\Container
          */
         protected static $containerInstance;
 
@@ -576,7 +579,15 @@ use ReflectionType;
         }
 
         /**
+         *  Resolve argument for a callable's parameter
          *  
+         *  This method first pass the argument that is pass to the specific function
+         *  After that, The container inject the rest.
+         * 
+         *  @param ReflectionFunctionAbstract
+         *  @param array
+         * 
+         *  @return array
          */
         protected function ResolveCallableParameters(ReflectionFunctionAbstract $_callable, array $_args = []): array {
 
@@ -601,7 +612,7 @@ use ReflectionType;
          *  
          *  @return array
          */
-        public function PassArguments(ReflectionFunctionAbstract $_callable, array $_args): array {
+        protected function PassArguments(ReflectionFunctionAbstract $_callable, array $_args): array {
 
             // index that used to iterate through $_parameters array
             //$i = 0;

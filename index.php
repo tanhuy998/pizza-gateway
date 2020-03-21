@@ -51,16 +51,15 @@ use Application\Container\DIContainer as Container;
 
     // $respone->send();
 
-    $func = function (string $a, $b, Dependency $c) {
-        echo $a;
+    $func = function (string $a, $b, Request $c) {
+        return $c;
     };
 
     $reflect = new ReflectionFunction($func);
 
-    $a = $container->PassArguments($reflect, ['a' => '1','b' => 2]);
+    $a = $container->call($func, ['a' => 'hello']);
 
-    var_dump($a);
-
+    
 
 
     
