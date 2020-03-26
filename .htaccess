@@ -9,8 +9,11 @@ SetEnv HTTP_MOD_REWRITE On
 
 RewriteEngine on
 
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+
+
+RewriteCond %{REQUEST_URI} -d
+RewriteRule !^(public/|index\.php) [NC,F]
+
 #RewriteCond %{REQUEST_METHOD} (PUT|DELETE)
 
 # The rest of your rewrite rules here
@@ -19,9 +22,16 @@ RewriteCond %{REQUEST_FILENAME} !-d
 
 #RewriteRule ^ index.php [L]
 
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{HTTP_HOST} ^(^.*)\.(.+) [NC]
 
-RewriteRule ^((?s).*)$ index.php?_url=/$1 [QSA,L]
-RewriteRule !^(public/|index\.php) [NC,F]
+RewriteRule ^((?s).*)$ index.php?_uri=/$1&_subdomain=%1 [QSA,L]
+
+
+
+#RewriteCond %{HTTP_HOST} ^(^.*)\.(.+)
+#RewriteRule (.*) index.php?_subdomain=%1
 
 #RewriteRule ^([a-z0-9\-]+)/([a-z0-9\-]+)/?$ index.php?c=$1&d=$2 [NC,L]
 

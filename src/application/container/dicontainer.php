@@ -866,13 +866,23 @@
          *  @throws Exception
          */
         public function Get(string $_name) {
+            
+            // $dependency = $this->AliasExists($_name) ? $this->alias[$_name]
+            //             : $this->IsBound($_name) ? $this->bindMap[$_name] : null;
 
-            $dependency = $this->AliasExists($_name) ? $this->alias[$_name]
-                        : $this->IsBound($_name) ? $this->bindMap[$_name] : null;
+            if ($this->AliasExists($_name)) {
 
-            if (!$dependency) throw new GlobalException("Trying to get $_name from the container that is unbound before");
+                $dependency = $this->alias[$_name];
+                return $this->ResolveDependency($dependency);
+            }
 
-            return $this->ResolveDependency($dependency);
+            if ($this->IsBound($_name)) {
+
+                $dependency = $this->bindMap[$_name];
+                return $this->ResolveDependency($dependency);
+            }
+
+            throw new GlobalException("Trying to get $_name from the container that is unbound  before");
         }
 
         /**
@@ -891,7 +901,7 @@
             $last_bound_dependency = end($this->bindStack);
 
             $name = $last_bound_dependency->GetName() ?? null;
-
+            
             if (is_null($name)) return;
 
             if (!$this->AliasExists($name)) {

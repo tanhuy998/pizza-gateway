@@ -12,55 +12,54 @@ use Application\Container\DIContainer as Container;
     use Dependencies\Router\Route as Route;
     use Dependencies\HttpHandler\HttpHandler as HttpHandler;
 
+    if (ob_get_level() == 0) ob_start();
 
     $container = Container::GetInstance();
     
     header('Access-Control-Allow-Origin: *');
 
-    // $request = Dependencies\HttpHandler\HttpHandler::Request();
+    $request = Dependencies\HttpHandler\HttpHandler::Request();
 
-    // $container->BindSingleton(Dependencies\Router\Router::class, Dependencies\Router\Router::class, 
-    //         function () use($container) {
+    $container->BindSingleton(Dependencies\Router\Router::class, Dependencies\Router\Router::class, 
+            function () use($container) {
                 
-    //             return new Dependencies\Router\Router($container);
-    //         })->name('router');
+                return new Dependencies\Router\Router($container);
+            })->name('router');
 
-    // $container->BindSingleton(Dependencies\Http\Request::class, Dependencies\Http\Request::class,
-    //         function () {
-    //             return new Request('PUT');
-    //         })->name('request');
+    $container->BindSingleton(Dependencies\Http\Request::class, Dependencies\Http\Request::class,
+            function () use($request){
+                return $request;
+            })->name('request');
 
-    // $container->BindSingleton(Dependencies\Http\Respone::class, Dependencies\Http\Respone::class,
-    //         function () use($container) {
+    $container->BindSingleton(Dependencies\Http\Respone::class, Dependencies\Http\Respone::class);
 
-    //             return new Dependencies\Http\Respone(200, $container);
-    //         });
+    $router = $container->Get(Dependencies\Router\Router::class);
 
-    // $router = $container->Get(Dependencies\Router\Router::class);
+    $router->Get('/test', function (IContainer $con) {
 
-    // $router->Get('/test', function (IContainer $container) {
+        //$req = $container->bind(Respone::class, Respone::class);
+        
+        return $con->Get('request')->Method();
+    });
 
-    //     return $container->Call(function ($a,Request $b, $c) {
-    //         var_dump($a);
-    //     }, ['c' => 'a', 1 ,'b' => new Request('POST')]);
-    // });
+    $router->Put('/test/a', function (Request $request) {
+        return $request->Query('t');
+    });
 
-    // $router->Get('/testcontroller/{id}', 'TestController::Index');
+    $respone = $router->Handle($request);
 
-    // $respone = $router->Handle($request);
+    $respone->send();
+    die();
 
-    // $respone->send();
+    // $func = function (string $a, $b, Request $c) {
+    //     return $c;
+    // };
 
-    $func = function (string $a, $b, Request $c) {
-        return $c;
-    };
+    // $reflect = new ReflectionFunction($func);
 
-    $reflect = new ReflectionFunction($func);
-
-    $a = $container->call($func, ['a' => 'hello']);
+    // $a = $container->call($func, ['a' => 'hello']);
 
     
-
 
     
     

@@ -8,75 +8,89 @@ use stdClass;
 
     class Dependency {
         /**
-         *  The class to build
+         *  The concreate class
+         * 
+         *  @var string
          */
         private $concrete;
 
+        /**
+         *  The alias name bound in container 
+         *     
+         *  @var string
+         */
         private $name;
 
         /**
          *  the container that manage this dependency
+         * 
+         *  @var Application\Container\DIContainer
          */
         private $container;
 
         /**
          *  the singleton state of this dependency 
+         * 
+         *  @var bool
          */
         private $singleton;
 
+        /**
+         *  The default generator
+         * 
+         *  @var Closure
+         */
         private $default;
 
+        /**
+         *  The address of the registered singleton object 
+         * 
+         *  @var int
+         */
         private $address;
 
         /**
-         *  @param string
+         *  @param string $_concrete
          *  @param Application\Container\DIContainer
+         *  @param Closure $_default
          */
-        public function __construct($_class, DIContainer &$_container, Closure $_default = null) {
+        public function __construct(string $_concrete, DIContainer &$_container, Closure $_default = null) {
             $this->container = $_container;
-            $this->class = $_class;
+            $this->concrete = $_concrete;
             $this->name = null;
             $this->singleton = false;
             $this->default = $_default;
 
+            $this->address = null;
             return $this;
         }
 
         /**
          *  Check if this dependency is singleton
          */
-        public function IsSingleton() {
+        public function IsSingleton(): bool {
             return $this->singleton;
         }
 
-        public function HasDefault() {
+        /**
+         *  Check if this dependency is registered with a default generator
+         */
+        public function HasDefault(): bool {
             return (!is_null($this->default));
         }
 
+        /**
+         *  return the default generator
+         */
         public function GetDefaultGenerator() {
             return $this->default;
-        }
-
-        /**
-         *  function that build an instance of this dependency
-         *  @param array 
-         */
-        public function Build($_args = []) {
-            $class = new ReflectionClass($this->class);
-
-            if (empty($_args)) {
-                return $class->newInstance( );
-            }
-            else {
-                return $class->newInstanceArgs($_args);
-            }
         }
 
         /**
          *  register this dependency as singleton
          *  @param object reference to object to bind as singleton
          */
-        public function AsSingleton(&$_object = null) {
+        public function AsSingleton() {
             //$obj = $this->GetInstance();
 
             if (!$this->IsSingleton()) {
@@ -87,14 +101,6 @@ use stdClass;
             
             return $this;
         }
-
-        // public function HasSingleton() {
-        //     if ($this->IsSingleton()) {
-        //         return !($this->singleton instanceof bool);
-        //     }
-
-        //     return false;
-        // }
 
         /**
          *  register alias name for this dependency to container
@@ -109,6 +115,9 @@ use stdClass;
             return $this;
         }
 
+        /**
+         *  return the refitered alias name
+         */
         public function GetName() {
             return $this->name;
         }
@@ -128,10 +137,9 @@ use stdClass;
             return $this->address;
         }
 
-        public function Defalut(Closure $_function) {
-            
-        }
-
+        /**
+         *  Return the concrete class
+         */
         public function GetConcrete() {
             return $this->concrete;
         }
