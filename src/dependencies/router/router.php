@@ -69,12 +69,12 @@ class Router {
             //var_dump($_option);
             $pattern = $_args[0];
             $action = $_args[1];
-
+            
             //  If $params does not contain two elements so the function is called indirectly
             if (!isset($pattern) || !isset($action)) throw new Exception();
 
             $this->StandardizePattern($pattern);
-
+            
             $this->CreateRoute($method, $pattern, $action);
 
             //  ResolveMethod function will push new member to $registerStack when method name is correct
@@ -106,8 +106,8 @@ class Router {
             $_pattern = preg_replace('/^(\/)+/', '', $_pattern);
 
             $_pattern = '/'.$_pattern;
-
-            $_pattern = preg_replace('/(\/)+$/', '', $_pattern);
+            
+            $_pattern = $_pattern !== '/' ? preg_replace('/(\/)+$/', '', $_pattern): $_pattern;
             // $_pattern = $first_char == '/' ? substr($_pattern,1, strlen($_pattern) -1): $_pattern;
             // $_pattern = $last_char == '/' ? substr($_pattern,0,strlen($_pattern) -1): $_pattern;
         }
@@ -142,6 +142,18 @@ class Router {
 
         public function Handle(Request $_request): Respone {
 
+            $direct_route = $this->ResolveRoute($_request);
+            
+            if (is_null($direct_route)) {
+                return $this->UnExistRoute();
+            }
+
+            $_request->SetRoute($direct_route);
+
+            return $this->ResolveRespone($_request);
+        }
+
+        private function ResolveRoute(Request $_request): ?Route {
             $corner = strtolower($_request->Method());
             
             if (!$this->HasCorner($corner)) throw new Exception();
@@ -149,26 +161,16 @@ class Router {
             $route_list = $this->OrientateCorner($corner);
 
             $request_path = $this->RemoveSubrootDirectory($_request->Path());
-            
-            $direct_route = null;
-            
+
             foreach ($route_list as $pattern => $route) {
                 
                 if ($this->PatternMatch($request_path, $pattern)) {
                     
-                    $direct_route = $route;
-
-                    break;
+                    return $route;
                 }
             }
 
-            if (is_null($direct_route)) {
-                return $this->UnExistRoute();
-            }
-
-            $_request->SetRoute($direct_route);
-
-            return $this->ResolveRoute($_request);
+            return null;
         }
 
         private function OrientateCorner($_corner): array {
@@ -181,8 +183,15 @@ class Router {
         }
 
         private function RemoveSubrootDirectory(string $_uri): string {
+            $subroot_dir = SubRootDir();
 
-            return SubRootDir() != '' ? str_replace(SubRootDir().'/', '', $_uri) : $_uri;
+            $regex = '/'.$subroot_dir.'/';
+
+            $return_uri = preg_replace($regex, '', $_uri);
+            $return_uri = preg_replace('/(\/)+/', '/', $return_uri);
+            
+            return $return_uri;
+            //return $subroot_dir != '' ? str_replace(SubRootDir().'/', '', $_uri) : $_uri;
         }
 
         protected function UnExistRoute(): Respone {
@@ -204,7 +213,7 @@ class Router {
          *  @param Route
          *  @return Respone
          */
-        private function ResolveRoute(Request $_request): Respone {
+        private function ResolveRespone(Request $_request): Respone {
 
             $route = $_request->Route();
 

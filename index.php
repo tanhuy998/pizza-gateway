@@ -43,17 +43,17 @@ use Application\Container\DIContainer as Container;
     });
 
     $router->Get('/', function() {
-        return '1';
+        return '/';
     });
 
     $router->Put('/test', function (Request $request) {
-        return $request->Query('_subdomain');
+        return 'put';
     });
 
     $respone = $router->Handle($request);
 
     $respone->send();
-    die();
+    exit;
 
     // $func = function (string $a, $b, Request $c) {
     //     return $c;
