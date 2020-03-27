@@ -55,12 +55,34 @@ use Exception;
             //$this->server = $_SERVER;
         }
 
+        public function Server(string $_info) {
+            return array_key_exists($_info, $_SERVER)? $_SERVER[$_info] : null;
+        }
+
+        public function UserAgent() {
+
+            return $this->Header('User-Agent');
+        }
+
+        public function Header(string $_name) {
+            $_name = strtoupper($_name);
+            $_name = str_replace('-', '_', $_name);
+
+            $key = 'HTTP_'.$_name;
+
+            return array_key_exists($key, $_SERVER)? $_SERVER[$key] : null;
+        }
+
         public function Url() {
-            return $_SERVER['REQUEST_SCHEME'].'://'.gethostname().'/'.$this->Path();
+            return $_SERVER['HTTP_HOST'].$this->Path();
         }
 
         public function FullUrl() {
-            return $_SERVER['REQUEST_SCHEME'].'://'.gethostname().$_SERVER['REQUEST_URI'];
+            return $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+        }
+
+        public function IP() {
+            return $_SERVER['REMOTE_ADDR'];
         }
 
         public function Path() {

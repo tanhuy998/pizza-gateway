@@ -35,15 +35,19 @@ use Application\Container\DIContainer as Container;
 
     $router = $container->Get(Dependencies\Router\Router::class);
 
-    $router->Get('/test', function (IContainer $con) {
+    $router->Get('/c', function (IContainer $con) {
 
         //$req = $container->bind(Respone::class, Respone::class);
-        
-        return $con->Get('request')->Method();
+        echo 1;
+        return $_SERVER['REMOTE_ADDR'];
     });
 
-    $router->Put('/test/a', function (Request $request) {
-        return $request->Query('t');
+    $router->Get('/', function() {
+        return '1';
+    });
+
+    $router->Put('/test', function (Request $request) {
+        return $request->Query('_subdomain');
     });
 
     $respone = $router->Handle($request);
