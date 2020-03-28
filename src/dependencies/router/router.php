@@ -8,6 +8,7 @@
     use Dependencies\Middleware\Middleware as Middleware;
     use Application\Container\DIContainer as Container;
     use Dependencies\Router\RedirectModule as RedirectModule;
+    use Dependencies\Parsing\URLParser as URLParser;
     use Exception;
 use Reflection;
 use ReflectionFunction;
@@ -22,14 +23,6 @@ class Router {
 
         const MIDDLEWARE_PASS = 200;
         const CONTROLLER_NAMESPACE = 'App\Controller';
-
-        /**
-         *  Four lists storing routes of specific restful methods
-         */
-        // private $get;
-        // private $post;
-        // private $put;
-        // private $delete;
 
         /**
          *  Corner is represent http request's methods
@@ -49,6 +42,7 @@ class Router {
         private $container;
 
         public $redirect;
+        protected $parser;
 
         public function __construct(Container $_container) {
             $this->corners[self::GET] = [];
@@ -62,6 +56,8 @@ class Router {
             $this->container = $_container;
 
             $this->redirect = new RedirectModule($this);
+            $this->parser = new URLParser();
+
         }
 
         /**
@@ -78,7 +74,7 @@ class Router {
             //  If $params does not contain two elements so the function is called indirectly
             if (!isset($pattern) || !isset($action)) throw new Exception();
 
-            $this->StandardizePattern($pattern);
+            $this->parser->StandardizePattern($pattern);
             
             $this->CreateRoute($method, $pattern, $action);
 
@@ -102,19 +98,6 @@ class Router {
             $this->registerStack[] = new Route($this, $_pattern, $_action);
 
             $corner[$_pattern] = end($this->registerStack);
-        }
-
-        private function StandardizePattern(string &$_pattern) {
-            $first_char = substr($_pattern,0,1);
-            $last_char = substr($_pattern, strlen($_pattern)-1, 1);
-
-            $_pattern = preg_replace('/^(\/)+/', '', $_pattern);
-
-            $_pattern = '/'.$_pattern;
-            
-            $_pattern = $_pattern !== '/' ? preg_replace('/(\/)+$/', '', $_pattern): $_pattern;
-            // $_pattern = $first_char == '/' ? substr($_pattern,1, strlen($_pattern) -1): $_pattern;
-            // $_pattern = $last_char == '/' ? substr($_pattern,0,strlen($_pattern) -1): $_pattern;
         }
 
 
@@ -146,7 +129,7 @@ class Router {
         
 
         public function Handle(Request $_request): Respone {
-
+            
             $direct_route = $this->ResolveRoute($_request);
             
             if (is_null($direct_route)) {
@@ -165,11 +148,11 @@ class Router {
 
             $route_list = $this->OrientateCorner($corner);
 
-            $request_path = $this->RemoveSubrootDirectory($_request->Path());
+            $request_path = $this->parser->RemoveSubrootDirectory($_request->Path());
 
             foreach ($route_list as $pattern => $route) {
                 
-                if ($this->PatternMatch($request_path, $pattern)) {
+                if ($this->parser->PatternMatch($request_path, $pattern)) {
                     
                     return $route;
                 }
@@ -187,17 +170,6 @@ class Router {
             return $this->corners[$_corner];
         }
 
-        private function RemoveSubrootDirectory(string $_uri): string {
-            $subroot_dir = SubRootDir();
-
-            $regex = '/'.$subroot_dir.'/';
-
-            $return_uri = preg_replace($regex, '', $_uri);
-            $return_uri = preg_replace('/(\/)+/', '/', $return_uri);
-            
-            return $return_uri;
-            //return $subroot_dir != '' ? str_replace(SubRootDir().'/', '', $_uri) : $_uri;
-        }
 
         protected function UnExistRoute(): Respone {
             $respone = $this->container->Get(Respone::class);
@@ -247,7 +219,7 @@ class Router {
 
         private function LoadController($_action, Request $_request) {
 
-            $route_args = $this->ParseUriArguments($_request);
+            $route_args = $this->parser->ParseUriParameters($_request);
 
             if ($_action instanceof Closure) {
 
@@ -272,31 +244,6 @@ class Router {
             }
         }
 
-        private function ParseUriArguments(Request $_request): array {
-            $request_uri = $_request->Path();
-            
-            $request_real_uri = $this->RemoveSubrootDirectory($request_uri);
-
-            $route_uri_pattern = $_request->Route()->GetUriPattern();
-
-            preg_match_all('/\{(.+?)\}/', $route_uri_pattern, $matches);
-
-            $route_params = $matches[1];
-
-            $keys = preg_replace('/\{|\}/', '', $route_uri_pattern);
-            $keys = explode('/', $keys);
-
-            $values = explode('/', $request_real_uri);
-            
-            $arr = array_combine($keys, $values);
-        
-            $callback = function ($key) use ($route_params) {
-            
-                return in_array($key, $route_params);
-            };
-
-            return array_filter($arr ,$callback, ARRAY_FILTER_USE_KEY);
-        }
 
         private function AnalyseControllerParameters(ReflectionFunctionAbstract $_function, array $_args): array {
             $parameters = $_function->getParameters();
@@ -380,29 +327,7 @@ class Router {
             throw new Exception();
         }
 
-        private function PatternMatch(string $_subject, string $_pattern): bool {
-            // $pattern_part = explode('/', $_pattern);
-
-            // $path_part = explode('/',$_subject);
-            //echo $_pattern;
-            //if (count($pattern_part) != count($path_part)) return false;
-
-            // $max_index = count($pattern_part);
-
-            $regx = '/\{[a-zA-Z0-9]+\}/';
-
-            $pattern = preg_replace($regx,'[a-zA-Z0-9]+', $_pattern);
-            
-            $pattern = str_replace('/', '\/', $pattern);
-
-            $pattern = '/^'.$pattern.'$/';
-            
-            return preg_match($pattern, $_subject) === 1? true: false;
-
-            // for ($index = 0; $index < $max_index; ++$index) {
-                
-            // }
-        }
+        
 
         public function Route(string $_name): ?Route {
             
@@ -416,4 +341,80 @@ class Router {
         public function RouteRegisterEvent() {
             $this->BindName();
         }
+
+        // private function StandardizePattern(string &$_pattern) {
+        //     $first_char = substr($_pattern,0,1);
+        //     $last_char = substr($_pattern, strlen($_pattern)-1, 1);
+
+        //     $_pattern = preg_replace('/^(\/)+/', '', $_pattern);
+
+        //     $_pattern = '/'.$_pattern;
+            
+        //     $_pattern = $_pattern !== '/' ? preg_replace('/(\/)+$/', '', $_pattern): $_pattern;
+        //     // $_pattern = $first_char == '/' ? substr($_pattern,1, strlen($_pattern) -1): $_pattern;
+        //     // $_pattern = $last_char == '/' ? substr($_pattern,0,strlen($_pattern) -1): $_pattern;
+        // }
+
+        // private function PatternMatch(string $_subject, string $_pattern): bool {
+        //     // $pattern_part = explode('/', $_pattern);
+
+        //     // $path_part = explode('/',$_subject);
+        //     //echo $_pattern;
+        //     //if (count($pattern_part) != count($path_part)) return false;
+
+        //     // $max_index = count($pattern_part);
+
+        //     $regx = '/\{[a-zA-Z0-9]+\}/';
+
+        //     $pattern = preg_replace($regx,'[a-zA-Z0-9]+', $_pattern);
+            
+        //     $pattern = str_replace('/', '\/', $pattern);
+
+        //     $pattern = '/^'.$pattern.'$/';
+            
+        //     return preg_match($pattern, $_subject) === 1? true: false;
+
+        //     // for ($index = 0; $index < $max_index; ++$index) {
+                
+        //     // }
+        // }
+
+        // private function RemoveSubrootDirectory(string $_uri): string {
+        //     $subroot_dir = SubRootDir();
+
+        //     $regex = '/'.$subroot_dir.'/';
+
+        //     $return_uri = preg_replace($regex, '', $_uri);
+        //     $return_uri = preg_replace('/(\/)+/', '/', $return_uri);
+            
+        //     return $return_uri;
+        //     //return $subroot_dir != '' ? str_replace(SubRootDir().'/', '', $_uri) : $_uri;
+        // }
+
+
+        // private function ParseUriArguments(Request $_request): array {
+        //     $request_uri = $_request->Path();
+            
+        //     $request_real_uri = $this->RemoveSubrootDirectory($request_uri);
+
+        //     $route_uri_pattern = $_request->Route()->GetUriPattern();
+
+        //     preg_match_all('/\{(.+?)\}/', $route_uri_pattern, $matches);
+
+        //     $route_params = $matches[1];
+
+        //     $keys = preg_replace('/\{|\}/', '', $route_uri_pattern);
+        //     $keys = explode('/', $keys);
+
+        //     $values = explode('/', $request_real_uri);
+            
+        //     $arr = array_combine($keys, $values);
+        
+        //     $callback = function ($key) use ($route_params) {
+            
+        //         return in_array($key, $route_params);
+        //     };
+
+        //     return array_filter($arr ,$callback, ARRAY_FILTER_USE_KEY);
+        // }
     }
