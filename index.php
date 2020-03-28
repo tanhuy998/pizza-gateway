@@ -40,12 +40,11 @@ use Application\Container\DIContainer as Container;
         //$req = $container->bind(Respone::class, Respone::class);
     
         echo 'c';
-        
+        return CurrentLocation();
     });
 
     $router->Get('/', function(Router $router) {
-        $refer = $router->redirect->GetReferer();
-        $router->redirect->Location($refer);
+        return CurrentLocation();
     })->name('home');
 
     $router->Put('/test', function (Router $router) {

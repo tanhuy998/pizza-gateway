@@ -214,6 +214,11 @@ class Respone {
             $this->SendHeader();
             $this->SendCookies();
 
+            //  Place referer
+            if (!isset($_SERVER['HTTP_REFERER'])) {
+                setcookie('_referer', CurrentLocation(), time()+60*30);
+            }
+
             ob_end_flush();
             //ob_end_clean();
         }
