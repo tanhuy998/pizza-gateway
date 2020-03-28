@@ -4,10 +4,6 @@
 
 src/dependencies/middleware
 
-src/dependencies/router/redirectmodule.php
-
-src/dependencies/router/iredirectable.php
-
 src/Application/injection
 
 boot/startup.php
