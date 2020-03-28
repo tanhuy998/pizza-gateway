@@ -21,6 +21,8 @@ class Route {
 
         private $middlewares;
 
+        protected $params;
+
 
         public function __construct(Router &$_router, $_path, $_action = null) {
             $this->path = $_path;
@@ -32,10 +34,25 @@ class Route {
             if (!is_null($_action)) $this->SetAction($_action);
             
             $this->action = $_action;
+
+
+            preg_match_all('/\{(.+?)\}/', $_path, $matches);
+
+            $this->ValidateParameters($matches[1]);
+            $this->params = $matches[1];
         }
 
         public function Action() {
             return $this->action;
+        }
+        
+        public function Parameters() {
+            return $this->params;
+        }
+
+        public function HasParameter(): bool {
+
+            return (!is_null($this->params) || !empty($this->params));
         }
 
         public function SetAction($_action) {
@@ -46,6 +63,14 @@ class Route {
                 $this->action = $_action;
             }
 
+        }
+
+        private function ValidateParameters(array $_params) {
+            $params = array_count_values($_params);
+
+            foreach ($params as $name => $time) {
+                if ($time > 1) throw new Exception("");
+            }
         }
 
         private function ValidateAction($_action) {

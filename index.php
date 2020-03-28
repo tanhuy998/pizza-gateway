@@ -13,7 +13,7 @@ use Application\Container\DIContainer as Container;
     use Dependencies\HttpHandler\HttpHandler as HttpHandler;
 
     if (ob_get_level() == 0) ob_start();
-
+    
     $container = Container::GetInstance();
     
     header('Access-Control-Allow-Origin: *');
@@ -35,19 +35,21 @@ use Application\Container\DIContainer as Container;
 
     $router = $container->Get(Dependencies\Router\Router::class);
 
-    $router->Get('/c', function (IContainer $con) {
+    $router->Get('/c', function (Router $router) {
 
         //$req = $container->bind(Respone::class, Respone::class);
-        echo 1;
-        return $_SERVER['REMOTE_ADDR'];
+    
+        echo 'c';
+        
     });
 
-    $router->Get('/', function() {
-        return '/';
-    });
+    $router->Get('/', function(Router $router) {
+        $refer = $router->redirect->GetReferer();
+        $router->redirect->Location($refer);
+    })->name('home');
 
-    $router->Put('/test', function (Request $request) {
-        return 'put';
+    $router->Put('/test', function (Router $router) {
+        
     });
 
     $respone = $router->Handle($request);

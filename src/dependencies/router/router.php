@@ -7,6 +7,7 @@
     use Dependencies\Http\Respone as Respone;
     use Dependencies\Middleware\Middleware as Middleware;
     use Application\Container\DIContainer as Container;
+    use Dependencies\Router\RedirectModule as RedirectModule;
     use Exception;
 use Reflection;
 use ReflectionFunction;
@@ -47,6 +48,8 @@ class Router {
 
         private $container;
 
+        public $redirect;
+
         public function __construct(Container $_container) {
             $this->corners[self::GET] = [];
             $this->corners[self::POST] = [];
@@ -57,6 +60,8 @@ class Router {
             $this->registerStack = [];
 
             $this->container = $_container;
+
+            $this->redirect = new RedirectModule($this);
         }
 
         /**
@@ -115,14 +120,14 @@ class Router {
 
         private function BindName() {
             $route = end($this->registerStack);
-
-            $route_name = $route->Name();
-
+            
+            $route_name = $route->GetName();
+            
             if (is_null($route_name)) return;
 
             if (array_key_exists($route_name, $this->nameList)) return;
 
-            $this->nameList['$route_name'] = $route;
+            $this->nameList[$route_name] = $route;
         }
 
         /**
@@ -397,6 +402,15 @@ class Router {
             // for ($index = 0; $index < $max_index; ++$index) {
                 
             // }
+        }
+
+        public function Route(string $_name): ?Route {
+            
+            if (array_key_exists($_name, $this->nameList)) {
+                return $this->nameList[$_name];
+            }
+
+            return null;
         }
 
         public function RouteRegisterEvent() {
