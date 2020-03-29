@@ -80,4 +80,32 @@
             // $_pattern = $first_char == '/' ? substr($_pattern,1, strlen($_pattern) -1): $_pattern;
             // $_pattern = $last_char == '/' ? substr($_pattern,0,strlen($_pattern) -1): $_pattern;
         }
+
+        public function IsRelative(string $_link) {
+            //  Simple regex pattern to check a if a link is a url
+            $reg = '/^https?:\/\/.+[a-zA-Z\/]$/';
+
+            return !preg_match($reg, $_link);
+        }
+
+        public function AddSubrootDirectory(string $_link):string {
+
+            if ($this->IsRelative($_link)) {
+
+                $subroot_dir = SubRootDir();
+
+                if (!preg_match('/^\//', $_link)) {
+
+                    $_link = '/'.$_link;
+                }
+                
+                $link = preg_replace('/\/\/+/', '/', $_link);
+
+                $link = $subroot_dir !== '' ? '/'.$subroot_dir.$link : $link;
+
+                return $link;
+
+            }
+            return $_link;
+        }
     }

@@ -11,8 +11,9 @@ use Application\Container\DIContainer as Container;
     use Dependencies\Router\Router as Router;
     use Dependencies\Router\Route as Route;
     use Dependencies\HttpHandler\HttpHandler as HttpHandler;
+use Dependencies\Parsing\URLParser;
 
-    if (ob_get_level() == 0) ob_start();
+if (ob_get_level() == 0) ob_start();
     
     $container = Container::GetInstance();
     
@@ -39,7 +40,9 @@ use Application\Container\DIContainer as Container;
 
         //$req = $container->bind(Respone::class, Respone::class);
     
-        echo 'c';
+        $parser = new URLParser();
+
+        return $parser->AddSubrootDirectory('/test');
     });
 
     $router->Get('/', function(Router $router) {
