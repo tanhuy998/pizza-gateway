@@ -40,13 +40,12 @@ if (ob_get_level() == 0) ob_start();
 
         //$req = $container->bind(Respone::class, Respone::class);
     
-        $parser = new URLParser();
-
-        return $parser->AddSubrootDirectory('/test');
+        return $router->redirect->Back();
+        //return $router->redirect->Location('/');
     });
 
     $router->Get('/', function(Router $router) {
-        return 'home';
+        return $router->redirect->GetReferer();
     })->name('home');
 
     $router->Put('/test', function (Router $router) {

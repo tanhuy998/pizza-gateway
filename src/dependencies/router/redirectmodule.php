@@ -19,14 +19,8 @@ use Dependencies\Router\Router as Router;
         }
 
         public function Location(string $_location, int $_status = 302) {
-            $subroot_dir = SubRootDir();
 
-
-            if ($this->IsRelativeLink($_location)) {
-                $_location = preg_replace('/\/\/+/', '/', $_location);
-
-                $_location = $subroot_dir !== '' ? '/'.$subroot_dir.$_location : $_location;
-            }
+            $_location = $this->router->parser->AddSubrootDirectory($_location);
             
             if ($_location === $this->currentLocation) return;
             
@@ -43,21 +37,24 @@ use Dependencies\Router\Router as Router;
                 $route_path_pattern = $route->GetUriPattern();
 
                 if ($route->HasParameter()) {
+
                     $route_params = $route->Parameters();
 
+                    $error = [];
                     foreach ($route_params as $name) {
                         if (array_key_exists($name, $_params)) {
 
                             $route_path_pattern = str_replace("{$name}", $_params[$name], $route_path_pattern);
                         }
                         else {
-                            throw new Exception();
+                            
                         }
                     }
+
+                    if ($error) {
+
+                    }
                 }
-
-                $subroot_dir = SubRootDir();
-
                 //$route_path_pattern = $subroot_dir !== '' ? '/'.$subroot_dir.$route_path_pattern : $route_path_pattern;
 
                 $this->Location($route_path_pattern, $_status);
