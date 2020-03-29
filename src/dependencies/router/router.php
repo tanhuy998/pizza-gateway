@@ -42,7 +42,7 @@ class Router {
         private $container;
 
         public $redirect;
-        protected $parser;
+        public $parser;
 
         public function __construct(Container $_container) {
             $this->corners[self::GET] = [];
