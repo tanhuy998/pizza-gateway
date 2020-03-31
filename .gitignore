@@ -1,9 +1,10 @@
 .env
 
-
-
 src/dependencies/middleware
 
+src/dependencies/router/domainhandler.php
+
+src/application/application.php
 
 src/Application/injection
 
