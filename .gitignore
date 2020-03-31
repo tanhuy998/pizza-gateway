@@ -1,5 +1,7 @@
 .env
 
+src/dependencies/collection
+
 src/dependencies/middleware
 
 src/dependencies/router/domainhandler.php
