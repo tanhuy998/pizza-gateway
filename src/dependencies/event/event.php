@@ -8,7 +8,7 @@ use Closure;
         private $listener;
         protected $emitter;
 
-        public function __construct(EventEmitter $_emitter) {
+        public final function __construct(EventEmitter $_emitter) {
             
             $this->emitter = $_emitter;
         }
@@ -19,5 +19,9 @@ use Closure;
 
         public function GetListener() {
             return $this->listener;
+        }
+
+        public function GetEventArgs() {
+            return new EventArgs($this->emitter);
         }
     }

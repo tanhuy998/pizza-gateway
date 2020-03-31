@@ -1,5 +1,7 @@
 .env
 
+src/dependencies/notification
+
 src/dependencies/collection
 
 src/dependencies/middleware
@@ -15,3 +17,4 @@ boot/startup.php
 app/
 
 public/
+
