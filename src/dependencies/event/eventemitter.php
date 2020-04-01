@@ -29,7 +29,12 @@ use ReflectionParameter;
         protected final function AddEvent(string $_event_name) {
 
             if (!$this->EventExist($_event_name)) {
-                $this->events[$_event_name] = new Event($this);
+
+                $event = new Event($this);
+
+                $this->events[$_event_name] = $event;
+
+                return $event;
             }
         }
 
