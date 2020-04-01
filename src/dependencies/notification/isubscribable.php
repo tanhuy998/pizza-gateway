@@ -5,6 +5,6 @@
 
     interface ISubscribable {
 
-        public function Subscribe(INotifiable $_notifier);
+        public function Subscribe(INotifiable $_notifier, string $_event);
         public function RecieveNotification(EventArgs $_notification);
     }

@@ -18,23 +18,29 @@ use Dependencies\Event\EventEmitter as EventEmitter;
             $this->AddEvent('eventclient-notify');
         }
 
-        public final function Subscribe(INotifiable $_notifier) {
-            $_notifier->AddSubscriber($this);
+        public final function Subscribe(INotifiable $_notifier, string $_event_name) {
+            $_notifier->AddSubscriber($this, $_event_name);
         }
 
-        public final function AddSubscriber(ISubscribable $_subscriber) {
+        public final function AddSubscriber(ISubscribable $_subscriber, string $_event) {
 
             if ($this->subscribers === null) $this->subscribers = [];
 
-            $this->subscribers[] = $_subscriber;
+            if (isset($this->subscribers[$_event])) {
+                $this->subscribers[$_event] = [];
+            }
+
+            $this->subscribers[$_event][] = $_subscriber;
         }
 
-        public final function Notify(string $_event_name) {
-            $this->Emit($_event_name);
+        public final function Notify(string $_event) {
+            
+            $this->Emit($_event);
 
-            $notification = $this->On($_event_name)->GetEventArgs();
+            $notification = $this->On($_event)->GetEventArgs();
 
-            foreach ($this->subscribers as $subscriber) {
+            foreach ($this->subscribers[$_event] as $subscriber) {
+
                 $subscriber->RecieveNotification($notification);
             }
         }
