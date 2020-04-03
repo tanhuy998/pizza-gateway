@@ -39,7 +39,7 @@ use ReflectionParameter;
          *  class automatically so this method is used for initiate base
          *  class properties when calling to setter method
          */
-        private final function Init() {
+        private function Init() {
             if (!isset($this->events)) {
                 $this->events = [];
             }
