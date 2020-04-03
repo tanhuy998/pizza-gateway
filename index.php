@@ -67,17 +67,22 @@ if (ob_get_level() == 0) ob_start();
         }
 
         public function RunTest() {
-            $this->Emit('onTest');
+            $this->NotifyEvent('onTest');
+        }
+
+        protected function HandleEventNotification(EventArgs $_notification) {
+            var_dump($_notification->Sender());
         }
     }
 
     $client = new Test();
 
-    
+    $subscriber = new Test();
+
+    $subscriber->SubscribeEvent($client, 'onTest');
 
     $client->RunTest();
 
 
 
-    
     
