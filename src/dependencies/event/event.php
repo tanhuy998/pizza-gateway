@@ -11,12 +11,12 @@
         protected $emitter;
 
         public final function __construct(EventEmitter $_emitter) {
-            
+            $this->listener = [];
             $this->emitter = $_emitter;
         }
 
-        public function Do(Closure $_func) {
-            $this->listener = $_func;
+        public function Do(Closure $_callback) {
+            $this->listener[] = $_callback;
         }
 
         public function GetListener() {

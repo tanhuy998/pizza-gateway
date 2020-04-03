@@ -22,11 +22,31 @@ use ReflectionParameter;
 
         private $events;
 
+        public function __construct() {
+            $this->Init();
+        }
+
         public final function EventExist(string $_name): bool {
+            $this->Init();
+
             return array_key_exists($_name, $this->events);
         }
 
+        /**
+         *  Init properties
+         * 
+         *  Because of derived class's constructor can not call base 
+         *  class automatically so this method is used for initiate base
+         *  class properties when calling to setter method
+         */
+        private final function Init() {
+            if (!isset($this->events)) {
+                $this->events = [];
+            }
+        }
+
         protected final function AddEvent(string $_event_name) {
+            $this->Init();
 
             if (!$this->EventExist($_event_name)) {
 
@@ -38,21 +58,21 @@ use ReflectionParameter;
             }
         }
 
-        protected final function AddEventlistener(string $_event_name, Closure $_callback) {
+        protected final function AddEventlistener(string $_event, Closure $_callback) {
 
-            if (!array_key_exists($_event_name, $this->events)) {
+            if (!$this->EventExist($_event)) {
 
-                $this->AddEvent($_event_name);
+                $this->AddEvent($_event);
             }
-            $this->On($_event_name)->Do($_callback);
+            $this->OnEvent($_event)->Do($_callback);
         }
 
         protected final function Emit($_event_name) {
-            $listeners = $this->On($_event_name)->Getlistener();
-
+            $listeners = $this->OnEvent($_event_name)->Getlistener();
+            
             foreach ($listeners as $listener) {
-
-                $eventArgs = $this->On($_event_name)->GetEventArgs();
+                
+                $eventArgs = $this->OnEvent($_event_name)->GetEventArgs();
 
                 $this->InvokeListener($listener, $eventArgs);
             }
@@ -62,14 +82,14 @@ use ReflectionParameter;
          *  Invoke a listener
          * 
          */
-        private function InvokeListener(Closure $_listener, EventArgs $_eventArgs) {
+        private final function InvokeListener(Closure $_listener, EventArgs $_eventArgs) {
             $function = new ReflectionFunction($_listener);
 
             $_args = $this->ResolveListenerParameters($function, $_eventArgs);
 
             if (class_exists('Autoloader')) {
                 $container = DIContainer::GetInstance();
-
+                
                 return $container->Call($_listener, $_args);
             }
             
@@ -77,18 +97,18 @@ use ReflectionParameter;
         }
 
 
-        private function ResolveListenerParameters(ReflectionFunctionAbstract $_listener, EventArgs $_eventArgs): array {
+        private final function ResolveListenerParameters(ReflectionFunctionAbstract $_listener, EventArgs $_eventArgs): array {
             if (class_exists('Autoloader')) {
 
                 $container = DIContainer::GetInstance();
 
-                return $this->ResolveParameterForContainer($_listener, $_eventArgs);
+                return $this->ResolveParameterByContainer($_listener, $_eventArgs);
             }
 
             return $this->ResolveParameterManually($_listener, $_eventArgs);
         }
 
-        private function ResolveParameterForContainer(ReflectionFunctionAbstract $_listener, EventArgs $_eventArgs): array {
+        private final function ResolveParameterByContainer(ReflectionFunctionAbstract $_listener, EventArgs $_eventArgs): array {
 
             $params = $_listener->getParameters();
 
@@ -97,14 +117,22 @@ use ReflectionParameter;
             foreach ($params as $parameter) {
                 
                 $class = $parameter->getClass();
+                $param_name = $parameter->getName();
 
-                if (is_null($class)) continue;
+                if (is_null($class)) {
+
+                    $type = $parameter->getType();
+
+                    if (is_null($type)) {
+                        $ret[$param_name] = clone $_eventArgs;
+                    }
+
+                    continue;
+                }
 
                 $param_class = $class->name;
 
                 if ($param_class === 'EventArgs') {
-
-                    $param_name = $parameter->getName();
 
                     $ret[$param_name] = clone $_eventArgs;
 
@@ -115,35 +143,32 @@ use ReflectionParameter;
             return $ret;
         }
 
-        private function ResolveParameterManually(ReflectionFunctionAbstract $_listener, EventArgs $_eventArgs): array {
+        private final function ResolveParameterManually(ReflectionFunctionAbstract $_listener, EventArgs $_eventArgs): array {
+            $detect_eventArgs = function (ReflectionParameter $param) use ($_eventArgs)  {
+                $class = $param->getClass();
+
+                $param_type = (!is_null($class)) ? $class->name : $param->getType()->getName();
+
+                return ($param_type === 'EvenArgs' || $param_type === 'NULL') ? $_eventArgs : null;
+            };
 
             $params = $_listener->getParameters();
 
             if (empty($params)) return [];
 
             if (count($params) === 1) {
-
-                $class = $params[0]->getClass();
-
-                $param_type = (!is_null($class)) ? $class->name : gettype($params[0]);
-
-                return ($param_type === 'EvenArgs' || $param_type === 'NULL') ? [$_eventArgs] : [null];
+                $ret = $detect_eventArgs($params[0]);
+                
+                return [$ret];
             }
-
-            $detect_eventArgs = function (ReflectionParameter $parameter) use ($_eventArgs)  {
-                $param_class = $parameter->getClass()->name;
-
-                if ($param_class === 'EventArgs') return clone $_eventArgs;
-                else return null;
-            };
 
             return array_map($detect_eventArgs, $params);
         }
 
-        public final function On(string $_event_name): Event {
-            if (array_key_exists($_event_name, $this->events)) return $this->events[$_event_name];
+        public final function OnEvent(string $_event): Event {
+            if ($this->EventExist($_event)) return $this->events[$_event];
 
             $class = get_class($this);
-            throw new Exception("Call on undefined Event \'$_event_name\' of class \'$class\'");
+            throw new Exception("Call on undefined Event \'$_event\' of class \'$class\'");
         }
     }
