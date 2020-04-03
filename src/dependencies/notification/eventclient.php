@@ -11,11 +11,8 @@ use Dependencies\Event\EventEmitter as EventEmitter;
         private $subscribers;
 
         public function __construct() {
-            $this->subscribers = [];
-            
-            $this->AddEvent('eventclient-notified');
-
-            $this->AddEvent('eventclient-notify');
+            parent::__construct();
+            $this->Init();
         }
 
         public final function SubscribeEvent(INotifiable $_notifier, string $_event_name) {
@@ -23,9 +20,18 @@ use Dependencies\Event\EventEmitter as EventEmitter;
             $_notifier->AddEventSubscriber($this, $_event_name);
         }
 
-        public final function AddEventSubscriber(ISubscribable $_subscriber, string $_event) {
-
+        private function Init() {
             if ($this->subscribers === null) $this->subscribers = [];
+            
+            $this->AddEvent('eventclient-notified');
+
+            $this->AddEvent('eventclient-notify');
+        }
+
+        public final function AddEventSubscriber(ISubscribable $_subscriber, string $_event) {
+            $this->Init();
+
+            $_event = strtolower($_event);
 
             if (isset($this->subscribers[$_event])) {
                 $this->subscribers[$_event] = [];
@@ -35,7 +41,8 @@ use Dependencies\Event\EventEmitter as EventEmitter;
         }
 
         protected final function NotifyEvent(string $_event) {
-            
+            $_event = strtolower($_event);
+
             $this->Emit($_event);
 
             $notification = $this->OnEvent($_event)->GetEventArgs();

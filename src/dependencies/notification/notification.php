@@ -8,8 +8,8 @@ class Notification extends EventArgs {
 
         protected $state;
 
-        public function __construct(EventEmitter $_sender) {
-            parent::__construct($_sender);
+        public function __construct(EventEmitter $_sender, string $_event) {
+            parent::__construct($_sender, $_event);
         }
 
         public function GetState() {
