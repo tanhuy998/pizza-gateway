@@ -71,7 +71,7 @@ if (ob_get_level() == 0) ob_start();
         }
 
         protected function HandleEventNotification(EventArgs $_notification) {
-            var_dump($_notification->Sender());
+            echo $_notification->GetEventName();
         }
     }
 

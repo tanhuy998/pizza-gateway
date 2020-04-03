@@ -7,16 +7,22 @@
     class Event {        
         
         private $listener;
+        private $name;
         private $eventArgs;
         protected $emitter;
 
-        public final function __construct(EventEmitter $_emitter) {
+        public final function __construct(EventEmitter $_emitter, string $_name) {
             $this->listener = [];
             $this->emitter = $_emitter;
+            $this->name = $_name;
         }
 
         public function Do(Closure $_callback) {
             $this->listener[] = $_callback;
+        }
+
+        public function GetName() {
+            return $this->name;
         }
 
         public function GetListener() {
@@ -25,7 +31,7 @@
 
         public function GetEventArgs() {
             
-            return $this->eventArgs ?? new EventArgs($this->emitter);
+            return $this->eventArgs ?? new EventArgs($this->emitter, $this->name);
         }
 
         public function SetEventArgs(EventArgs $_arg) {

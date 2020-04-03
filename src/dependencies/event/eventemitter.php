@@ -48,11 +48,13 @@ use ReflectionParameter;
         protected final function AddEvent(string $_event_name) {
             $this->Init();
 
+            $lowed_name = strtolower($_event_name);
+
             if (!$this->EventExist($_event_name)) {
 
-                $event = new Event($this);
+                $event = new Event($this, $_event_name);
 
-                $this->events[$_event_name] = $event;
+                $this->events[$lowed_name] = $event;
 
                 return $event;
             }
@@ -68,6 +70,8 @@ use ReflectionParameter;
         }
 
         protected final function Emit($_event_name) {
+            $_event_name = strtolower($_event_name);
+
             $listeners = $this->OnEvent($_event_name)->Getlistener();
             
             foreach ($listeners as $listener) {
@@ -166,6 +170,8 @@ use ReflectionParameter;
         }
 
         public final function OnEvent(string $_event): Event {
+            $_event = strtolower($_event);
+
             if ($this->EventExist($_event)) return $this->events[$_event];
 
             $class = get_class($this);
