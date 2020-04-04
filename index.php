@@ -21,68 +21,45 @@ if (ob_get_level() == 0) ob_start();
     
     header('Access-Control-Allow-Origin: *');
 
-    // $request = Dependencies\HttpHandler\HttpHandler::Request();
+    $request = Dependencies\HttpHandler\HttpHandler::Request();
 
-    // $container->BindSingleton(Dependencies\Router\Router::class, Dependencies\Router\Router::class, 
-    //         function () use($container) {
+    $container->BindSingleton(Dependencies\Router\Router::class, Dependencies\Router\Router::class, 
+            function () use($container) {
                 
-    //             return new Dependencies\Router\Router($container);
-    //         })->name('router');
+                return new Dependencies\Router\Router($container);
+            })->name('router');
 
-    // $container->BindSingleton(Dependencies\Http\Request::class, Dependencies\Http\Request::class,
-    //         function () use($request){
-    //             return $request;
-    //         })->name('request');
+    $container->BindSingleton(Dependencies\Http\Request::class, Dependencies\Http\Request::class,
+            function () use($request){
+                return $request;
+            })->name('request');
 
-    // $container->BindSingleton(Dependencies\Http\Respone::class, Dependencies\Http\Respone::class);
+    $container->BindSingleton(Dependencies\Http\Respone::class, Dependencies\Http\Respone::class);
 
-    // $router = $container->Get(Dependencies\Router\Router::class);
+    $router = $container->Get(Dependencies\Router\Router::class);
 
-    // $router->Get('/c', function (Router $router) {
+    $router->Get('/c', function (Router $router) {
 
-    //     //$req = $container->bind(Respone::class, Respone::class);
+        //$req = $container->bind(Respone::class, Respone::class);
     
-    //     return $router->redirect->Back();
-    //     //return $router->redirect->Location('/');
-    // });
+        return $router->redirect->Back();
+        //return $router->redirect->Location('/');
+    });
 
-    // $router->Get('/', function(Router $router) {
-    //     return $router->redirect->GetReferer();
-    // })->name('home');
+    $router->Get('/', function(Router $router) {
+        return $router->redirect->GetReferer();
+    })->name('home');
 
-    // $router->Put('/test', function (Router $router) {
+    $router->Put('/test', function (Router $router) {
         
-    // });
+    });
 
-    // $respone = $router->Handle($request);
+    $respone = $router->Handle($request);
 
-    // $respone->send();
-    // exit;
+    $respone->send();
+    exit;
 
-    class Test extends EventClient {
-        public function __construct() {
-            parent::__construct();
-
-            $this->AddEvent('onTest');
-        }
-
-        public function RunTest() {
-            $this->NotifyEvent('onTest');
-        }
-
-        protected function HandleEventNotification(EventArgs $_notification) {
-            echo $_notification->GetEventName();
-        }
-    }
-
-    $client = new Test();
-
-    $subscriber = new Test();
-
-    $subscriber->SubscribeEvent($client, 'onTest');
-
-    $client->RunTest();
-
+    
 
 
     
