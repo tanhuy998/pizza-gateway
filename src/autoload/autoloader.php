@@ -52,7 +52,7 @@
                     require_once($full_file_path_name);
                 }
                 else {
-                    throw new Exception("Can not find the file contain definition of $_className");
+                    throw new Autoload\ClassNotDefinedException($_className);
                 }
             }
         }
