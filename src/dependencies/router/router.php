@@ -95,7 +95,7 @@ class Router {
 
             if ($this->PatternExists($_pattern, $corner)) throw new Exception();
             
-            $this->registerStack[] = new Route($this, $_pattern, $_action);
+            $this->registerStack[] = new Route($this, $_corner_name, $_pattern, $_action);
 
             $corner[$_pattern] = end($this->registerStack);
         }

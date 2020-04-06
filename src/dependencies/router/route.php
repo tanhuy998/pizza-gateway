@@ -23,8 +23,11 @@ class Route {
 
         protected $params;
 
+        private $subdomain;
 
-        public function __construct(Router &$_router, $_path, $_action = null) {
+        private $domainParams;
+
+        public function __construct(Router &$_router, string $_method, string $_path, $_action = null) {
             $this->path = $_path;
 
             $this->middlewareChain = [];
@@ -34,6 +37,8 @@ class Route {
             if (!is_null($_action)) $this->SetAction($_action);
             
             $this->action = $_action;
+
+            $this->method = $_method;
 
 
             preg_match_all('/\{(.+?)\}/', $_path, $matches);
@@ -135,5 +140,30 @@ class Route {
 
         public function GetUriPattern() {
             return $this->path;
+        }
+
+        public function SetSubdomain(string $_name) {
+
+            if (isset($this->subdomain)) return;
+
+            preg_match_all('/\{(.+?)\}/', $_name, $matches);
+
+            if (!empty($matches[1])) {
+
+                $this->ValidateParameters($matches[1]);
+
+                $this->domainParams = $matches[1];
+            }
+
+            $this->subdomain = $_name;
+        }
+
+        public function GetSubdomain() {
+            return $this->subdomain;
+        }
+
+        public function DomainParameters() {
+
+            return $this->domainParams;
         }
     }

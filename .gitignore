@@ -6,6 +6,8 @@ src/dependencies/middleware
 
 src/dependencies/router/domainhandler.php
 
+src/dependencies/router/routecreatenotification.php
+
 src/application/application.php
 
 src/Application/injection
