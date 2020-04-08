@@ -40,12 +40,12 @@ use Dependencies\Event\EventEmitter as EventEmitter;
             $this->subscribers[$_event][] = $_subscriber;
         }
 
-        protected final function NotifyEvent(string $_event) {
+        protected final function NotifyEvent(string $_event, EventArgs $_notification = null) {
             $_event = strtolower($_event);
 
-            $this->Emit($_event);
+            $this->Emit($_event, $_notification);
 
-            $notification = $this->OnEvent($_event)->GetEventArgs();
+            $notification = is_null($_notification) ? $this->OnEvent($_event)->GetEventArgs() : $_notification;
             
             foreach ($this->subscribers[$_event] as $subscriber) {
                 

@@ -81,7 +81,9 @@
                 $eventArgs = $this->OnEvent($_event_name)->GetEventArgs();
             }
             else {
-                if ($_eventArgs->Sender() !== $this) throw new Exception('The sender of $_eventArgs parameters not match the emitter');
+                if ($_eventArgs->Sender() !== $this) throw new Exception('The sender of $_eventArgs parameter not match the emitter');
+
+                if ($_eventArgs->GetEventName() == $_event_name) throw new Exception('The eventName of $_eventArgs parameter not match the eventName of the Emitter');
 
                 $eventArgs = $_eventArgs;
             }
