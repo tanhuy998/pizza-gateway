@@ -70,14 +70,23 @@
             $this->OnEvent($_event)->Do($_callback);
         }
 
-        protected final function Emit($_event_name) {
+        protected final function Emit(string $_event_name, EventArgs $_eventArgs = null) {
             $_event_name = strtolower($_event_name);
 
             $listeners = $this->OnEvent($_event_name)->Getlistener();
             
-            foreach ($listeners as $listener) {
-                
+            $eventArgs = null;
+
+            if (is_null($_eventArgs)) {
                 $eventArgs = $this->OnEvent($_event_name)->GetEventArgs();
+            }
+            else {
+                if ($_eventArgs->Sender() !== $this) throw new Exception('The sender of $_eventArgs parameters not match the emitter');
+
+                $eventArgs = $_eventArgs;
+            }
+
+            foreach ($listeners as $listener) {
 
                 $this->InvokeListener($listener, $eventArgs);
             }
