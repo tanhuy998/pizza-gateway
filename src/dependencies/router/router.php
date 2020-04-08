@@ -7,15 +7,17 @@
     use Dependencies\Http\Respone as Respone;
     use Dependencies\Middleware\Middleware as Middleware;
     use Application\Container\DIContainer as Container;
-    use Dependencies\Router\RedirectModule as RedirectModule;
+use Dependencies\Notification\EventClient;
+use Dependencies\Router\RedirectModule as RedirectModule;
     use Dependencies\Parsing\URLParser as URLParser;
+    use Dependencies\Router\DomainHandler as DomainHandler;
     use Exception;
 use Reflection;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
 
-class Router {
+class Router extends EventClient {
         const GET = 'get';
         const POST = 'post';
         const PUT = 'put';
@@ -44,6 +46,8 @@ class Router {
         public $redirect;
         public $parser;
 
+        public $domain;
+
         public function __construct(Container $_container) {
             $this->corners[self::GET] = [];
             $this->corners[self::POST] = [];
@@ -58,7 +62,17 @@ class Router {
             $this->redirect = new RedirectModule($this);
             $this->parser = new URLParser();
 
+            $this->domain = new DomainHandler($this);
+
+            $this->InitEvents();
         }
+
+        private function InitEvents() {
+            $this->AddEvent('onCreateRoute');
+            $this->AddEvent('onInitialize');
+            $this->AddEvent('onLoadController');
+
+        } 
 
         /**
          *  magic fucntion to handle routes declaration
@@ -81,6 +95,10 @@ class Router {
             //  ResolveMethod function will push new member to $registerStack when method name is correct
             //  throw exception on fail
             $new_route = $this->LastRoute();
+
+            $notification = new RouteCreateNotification($this, 'onCreateRoute', $new_route);
+
+            $this->Emit('onCreateRoute', $notification);
 
             return $new_route;
         }
@@ -342,6 +360,15 @@ class Router {
             $this->BindName();
         }
 
+
+        public function Domain(string $_pattern, Closure $_init) {
+            $this->domain->Manage($_pattern, $_init);
+        }
+
+        protected function HandleEventNotification(\Dependencies\Event\EventArgs $_notification) {
+            
+        }
+        
         // private function StandardizePattern(string &$_pattern) {
         //     $first_char = substr($_pattern,0,1);
         //     $last_char = substr($_pattern, strlen($_pattern)-1, 1);
