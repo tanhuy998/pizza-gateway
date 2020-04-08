@@ -9,10 +9,11 @@ use Closure;
     use Dependencies\Http\Request as Request;
     use Dependencies\Http\Respone as Respone;
     use Dependencies\Notification\EventClient as EventClient;
+use Exception;
 
-    class DomainHandler extends EventClient {
+class DomainHandler extends EventClient {
 
-        private $subDomains;
+        private $Domains;
 
         private $alias;
 
@@ -31,12 +32,12 @@ use Closure;
             $this->SubscribeEvent($_router, 'onCreateRoute');
         }
 
-        public function SubDomain(string $_pattern, closure $_callback) {
+        public function Manage(string $_pattern, closure $_callback) {
             
-            $this->ValidateParameters($_pattern);
+            $this->Validate($_pattern);
 
-            if (!isset($this->subDomains[$_pattern])) {
-                $this->subDomains[$_pattern] = [];
+            if (!isset($this->Domains[$_pattern])) {
+                $this->Domains[$_pattern] = [];
             }
 
             $this->flag = true;
@@ -50,8 +51,14 @@ use Closure;
             if (empty($this->stack)) $this->flag = false;
         }
 
-        private function ValidateParameters(string $_pattern) {
+        private function Validate(string $_pattern) {
 
+            $domain_regex_pattern = '/^((\w|\{\w+\})([\w\-]*|\{\w+\})*(\w|\{\w+\})\.)?(\w|\{\w+\})+(\.([a-z]|\{[a-z]+\})+)?$/';
+
+            // check if the domain pattern is valid
+            if (!preg_match($domain_regex_pattern, $_pattern)) throw new Exception();
+
+            // check duplication of domain pattern's parameters
             preg_match_all('/\{(.+?)\}/', $_pattern, $matches);
 
             $params = array_count_values($matches[1]);
@@ -85,7 +92,7 @@ use Closure;
 
             //$pattern = $this->ResolveDomainPattern($current_SettingDomain);
 
-            $this->subDomains[$current_SettingDomain][] = $createdRoute;
+            $this->Domains[$current_SettingDomain][] = $createdRoute;
 
             array_pop($this->stack);
         }
