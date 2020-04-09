@@ -48,9 +48,12 @@ use Dependencies\Event\EventEmitter as EventEmitter;
 
             $notification = is_null($_notification) ? $this->OnEvent($_event)->GetEventArgs() : $_notification;
             
-            foreach ($this->subscribers[$_event] as $subscriber) {
+            if (isset($this->subscribers[$_event])) {
                 
-                $subscriber->RecieveEventNotification($notification);
+                foreach ($this->subscribers[$_event] as $subscriber) {
+                
+                    $subscriber->RecieveEventNotification($notification);
+                }
             }
         }
 

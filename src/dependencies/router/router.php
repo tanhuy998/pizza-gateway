@@ -49,6 +49,7 @@ class Router extends EventClient {
         public $domain;
 
         public function __construct(Container $_container) {
+            parent::__construct();
             $this->corners[self::GET] = [];
             $this->corners[self::POST] = [];
             $this->corners[self::PUT] = [];
@@ -98,7 +99,7 @@ class Router extends EventClient {
 
             $notification = new RouteCreateNotification($this, 'onCreateRoute', $new_route);
 
-            $this->Emit('onCreateRoute', $notification);
+            $this->NotifyEvent('onCreateRoute', $notification);
 
             return $new_route;
         }

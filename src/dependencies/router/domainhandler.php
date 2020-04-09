@@ -13,7 +13,7 @@ use Exception;
 
 class DomainHandler extends EventClient {
 
-        private $Domains;
+        private $domains;
 
         private $alias;
 
@@ -23,12 +23,15 @@ class DomainHandler extends EventClient {
 
         private $stack;
 
-        public $route;
+        public $routes;
 
         public function __construct(Router $_router) {
+            parent::__construct();
             $this->router = $_router;
+            $this->domains = [];
             $this->stack = [];
-
+            $this->flag = false;
+            
             $this->SubscribeEvent($_router, 'onCreateRoute');
         }
 
@@ -36,19 +39,22 @@ class DomainHandler extends EventClient {
             
             $this->Validate($_pattern);
 
-            if (!isset($this->Domains[$_pattern])) {
-                $this->Domains[$_pattern] = [];
+            if (!isset($this->domains[$_pattern])) {
+                $this->domains[$_pattern] = [];
             }
-
+            
             $this->flag = true;
 
             $this->stack[] = $_pattern;
-
+            
             $container = \Application\Container\DIContainer::GetInstance();
 
             $container->call($_callback);
 
+            array_pop($this->stack);
+
             if (empty($this->stack)) $this->flag = false;
+            
         }
 
         private function Validate(string $_pattern) {
@@ -76,24 +82,24 @@ class DomainHandler extends EventClient {
         protected function HandleEventNotification(\Dependencies\Event\EventArgs $_notification) {
             
             if ($_notification instanceof RouteCreateNotification) {
+                
                 $this->OnRouteCreated($_notification);
             }
+            
         }
         
         private function OnRouteCreated(RouteCreateNotification $_notification) {
+            
+            if ($this->flag === false || $this->flag === null) return;
 
-            if ($this->flag === false) return;
-
-            $createdRoute = $_notification->GetCreatedRoute();
+            $created_Route = $_notification->GetCreatedRoute();
 
             $current_SettingDomain = end($this->stack);
-
-            $createdRoute->SetSubDomain($current_SettingDomain);
+            
+            $created_Route->SetSubDomain($current_SettingDomain);
 
             //$pattern = $this->ResolveDomainPattern($current_SettingDomain);
+            $this->domains[$current_SettingDomain][] = $created_Route;
 
-            $this->Domains[$current_SettingDomain][] = $createdRoute;
-
-            array_pop($this->stack);
         }
     }

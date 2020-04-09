@@ -194,4 +194,8 @@
             $class = get_class($this);
             throw new Exception("Call on undefined Event \'$_event\' of class \'$class\'");
         }
+
+        public final function ListEvents() {
+            return array_keys($this->events);
+        }
     }

@@ -51,8 +51,21 @@ if (ob_get_level() == 0) ob_start();
     })->name('home');
 
     $router->Put('/test', function (Router $router) {
-        
+
+        return 'put method';
     });
+
+    $router->Domain('test.localhost', function (Router $router) {
+
+        $router->Get('/sub', function () {
+            return 'subdomain route /';
+        });
+
+        $router->Get('/domain', function () {
+
+        });
+    });
+
 
     $respone = $router->Handle($request);
 
