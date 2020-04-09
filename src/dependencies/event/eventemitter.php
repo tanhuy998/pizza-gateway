@@ -39,7 +39,7 @@
          *  Because of derived class's constructor can not call base 
          *  class automatically so this method is used for initiate base
          *  class properties when calling to setter method
-         */
+         */ 
         private function Init() {
             if (!isset($this->events)) {
                 $this->events = [];

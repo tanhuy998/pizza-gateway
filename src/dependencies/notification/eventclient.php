@@ -21,6 +21,7 @@ use Dependencies\Event\EventEmitter as EventEmitter;
         }
 
         private function Init() {
+
             if ($this->subscribers === null) $this->subscribers = [];
             
             $this->AddEvent('eventclient-notified');
@@ -54,7 +55,7 @@ use Dependencies\Event\EventEmitter as EventEmitter;
         }
 
         public final function RecieveEventNotification(EventArgs $_notification) {
-            $this->Emit('eventclient-notified');
+            $this->NotifyEvent('eventclient-notified');
 
             $this->HandleEventNotification($_notification);
         }
