@@ -42,7 +42,7 @@ if (ob_get_level() == 0) ob_start();
 
         //$req = $container->bind(Respone::class, Respone::class);
     
-        return $router->redirect->Back();
+        //return $router->redirect->Back();
         //return $router->redirect->Location('/');
     });
 
@@ -57,8 +57,8 @@ if (ob_get_level() == 0) ob_start();
 
     $router->Domain('test.localhost', function (Router $router) {
 
-        $router->Get('/sub', function () {
-            return 'subdomain route /';
+        $router->Get('/', function () {
+            echo 'subdomain route /';
         });
 
         $router->Get('/domain', function () {

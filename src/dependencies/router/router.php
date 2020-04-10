@@ -8,6 +8,7 @@
     use Dependencies\Middleware\Middleware as Middleware;
     use Application\Container\DIContainer as Container;
 use Dependencies\Notification\EventClient;
+use Dependencies\Notification\Notification;
 use Dependencies\Router\RedirectModule as RedirectModule;
     use Dependencies\Parsing\URLParser as URLParser;
     use Dependencies\Router\DomainHandler as DomainHandler;
@@ -73,6 +74,7 @@ class Router extends EventClient {
             $this->AddEvent('onInitialize');
             $this->AddEvent('onLoadController');
 
+            $this->SubscribeEvent($this->domain, 'onManageRoute');
         } 
 
         /**
@@ -90,18 +92,40 @@ class Router extends EventClient {
             if (!isset($pattern) || !isset($action)) throw new Exception();
 
             $this->parser->StandardizePattern($pattern);
+
+            $existed_route = $this->CheckForRoute($method, $pattern);
+
+            $send_route = null;
+
+            if (is_null($existed_route)) {
+                $this->CreateRoute($method, $pattern, null);
+
+                //  ResolveMethod function will push new member to $registerStack when method name is correct
+                //  throw exception on fail
+                $send_route = $this->LastRoute();
+            }
+            else {
+                $send_route = $existed_route;
+            }
             
-            $this->CreateRoute($method, $pattern, $action);
-
-            //  ResolveMethod function will push new member to $registerStack when method name is correct
-            //  throw exception on fail
-            $new_route = $this->LastRoute();
-
-            $notification = new RouteCreateNotification($this, 'onCreateRoute', $new_route);
+            $notification = new RouteCreateNotification($this, 'onCreateRoute', $send_route);
+            $notification->SetState($action);
 
             $this->NotifyEvent('onCreateRoute', $notification);
 
-            return $new_route;
+            return $send_route;
+        }
+
+        private function CheckForRoute(string $_method, string $_path) {
+
+            $route_list = $this->OrientateCorner($_method);
+
+            foreach ($route_list as $pattern => $route) {
+                
+                if ($pattern === $_path) return $route;
+            }
+
+            return null;
         }
 
         private function CreateRoute(string $_corner_name, $_pattern, $_action) {
@@ -368,7 +392,24 @@ class Router extends EventClient {
 
         protected function HandleEventNotification(\Dependencies\Event\EventArgs $_notification) {
             
+            if ($_notification->GetEventName() === 'onManageRoute'
+                && $_notification->Sender() === $this->domain
+            ) {
+                $this->onManageDomain($_notification);
+            }
         }
+
+        private function onManageDomain(Notification $_notification) {
+            $state = $_notification->GetState();
+            
+            $route = $state['route'];
+            $action = $state['action'];
+            $domain = $state['domain'];
+
+            $route->SetAction($action, $domain);
+        }
+
+
         
         // private function StandardizePattern(string &$_pattern) {
         //     $first_char = substr($_pattern,0,1);

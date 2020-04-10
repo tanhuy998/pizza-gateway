@@ -8,10 +8,11 @@ use ReflectionFunction;
 use ReflectionType;
 
 class Route {
+        public const DOMAIN_DEFAULT = 0;
 
         private $router;
 
-        private $action;
+        private $actions;
 
         private $path;
 
@@ -23,23 +24,24 @@ class Route {
 
         protected $params;
 
-        private $subdomain;
-
         private $domainParams;
 
-        public function __construct(Router &$_router, string $_method, string $_path, $_action = null) {
+        public function __construct(Router &$_router, string $_method, string $_path, $_action = null, $_domain = self::DOMAIN_DEFAULT) {
             $this->path = $_path;
+
+            $this->method = $_method;
 
             $this->middlewareChain = [];
 
             $this->router = $_router;
 
-            if (!is_null($_action)) $this->SetAction($_action);
-            
-            $this->action = $_action;
+            $this->actions = [];
 
-            $this->method = $_method;
+            if ($_action !== null) {
+                $this->ValidateAction($_action);
 
+                $this->actions[$_domain] = $_action;
+            }
 
             preg_match_all('/\{(.+?)\}/', $_path, $matches);
 
@@ -47,8 +49,19 @@ class Route {
             $this->params = $matches[1];
         }
 
-        public function Action() {
-            return $this->action;
+        public function Action($_domain = self::DOMAIN_DEFAULT) {
+
+            if ($_domain === self::DOMAIN_DEFAULT) return $this->actions[self::DOMAIN_DEFAULT];
+
+            foreach ($this->actions as $pattern => $action) {
+
+                if ($this->router->parser->PatternMatch($_domain, $pattern)) {
+
+                    return $action;
+                    //return $this->actions[$pattern];
+                }
+            }
+            
         }
         
         public function Parameters() {
@@ -60,14 +73,14 @@ class Route {
             return (!is_null($this->params) || !empty($this->params));
         }
 
-        public function SetAction($_action) {
+        public function SetAction($_action, $_domain = self::DOMAIN_DEFAULT) {
 
-            if (!isset($this->action)) {
-                $this->ValidateAction($_action);
+            $this->ValidateAction($_action);
 
-                $this->action = $_action;
+            if (!isset($this->actions[$_domain])) {
+                
+                $this->actions[$_domain] = $_action;
             }
-
         }
 
         private function ValidateParameters(array $_params) {
@@ -142,7 +155,7 @@ class Route {
             return $this->path;
         }
 
-        public function SetSubdomain(string $_name) {
+        public function SetDomain(string $_name) {
 
             if (isset($this->subdomain)) return;
 

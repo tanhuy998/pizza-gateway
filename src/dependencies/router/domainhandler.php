@@ -9,6 +9,7 @@ use Closure;
     use Dependencies\Http\Request as Request;
     use Dependencies\Http\Respone as Respone;
     use Dependencies\Notification\EventClient as EventClient;
+use Dependencies\Notification\Notification;
 use Exception;
 
 class DomainHandler extends EventClient {
@@ -27,12 +28,18 @@ class DomainHandler extends EventClient {
 
         public function __construct(Router $_router) {
             parent::__construct();
+            $this->Init();
+
             $this->router = $_router;
             $this->domains = [];
             $this->stack = [];
             $this->flag = false;
             
             $this->SubscribeEvent($_router, 'onCreateRoute');
+        }
+
+        private function Init() {
+            $this->AddEvent('onManageRoute');
         }
 
         public function Manage(string $_pattern, closure $_callback) {
@@ -90,16 +97,26 @@ class DomainHandler extends EventClient {
         
         private function OnRouteCreated(RouteCreateNotification $_notification) {
             
-            if ($this->flag === false || $this->flag === null) return;
-
             $created_Route = $_notification->GetCreatedRoute();
 
-            $current_SettingDomain = end($this->stack);
+            $report_domain = Route::DOMAIN_DEFAULT;
+
+            if ($this->flag === true) {
+                $current_manageDomain = end($this->stack);
+
+                $report_domain = $current_manageDomain;
+                //$pattern = $this->ResolveDomainPattern($current_SettingDomain);
+                $this->domains[$current_manageDomain][] = $created_Route;
+            }
             
-            $created_Route->SetSubDomain($current_SettingDomain);
+            $noti = new  Notification($this, 'onManageRoute');
 
-            //$pattern = $this->ResolveDomainPattern($current_SettingDomain);
-            $this->domains[$current_SettingDomain][] = $created_Route;
+            $noti->SetState([
+                'domain' => $report_domain,
+                'route' => $created_Route,
+                'action' => $_notification->GetState(),
+            ]);
 
+            $this->NotifyEvent('onManageRoute', $noti);
         }
     }
