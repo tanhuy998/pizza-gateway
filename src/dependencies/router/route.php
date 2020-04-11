@@ -62,6 +62,7 @@ class Route {
                 }
             }
             
+            return $this->actions[self::DOMAIN_DEFAULT];
         }
         
         public function Parameters() {

@@ -247,7 +247,9 @@ class Router extends EventClient {
 
             if ($respone->Status() === self::MIDDLEWARE_PASS) {
 
-                $action = $route->Action();
+                $request_hostname = $_request->Server('HTTP_HOST');
+                
+                $action = $route->Action($request_hostname);
 
                 $result = $this->LoadController($action, $_request);
 
@@ -400,11 +402,11 @@ class Router extends EventClient {
         }
 
         private function onManageDomain(Notification $_notification) {
-            $state = $_notification->GetState();
-            
-            $route = $state['route'];
-            $action = $state['action'];
-            $domain = $state['domain'];
+            $report = $_notification->GetState();
+
+            $route = $report['route'];
+            $action = $report['action'];
+            $domain = $report['domain'];
 
             $route->SetAction($action, $domain);
         }

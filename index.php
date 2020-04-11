@@ -47,7 +47,7 @@ if (ob_get_level() == 0) ob_start();
     });
 
     $router->Get('/', function(Router $router) {
-        return $router->redirect->GetReferer();
+        return $_SERVER['HTTP_HOST'];
     })->name('home');
 
     $router->Put('/test', function (Router $router) {
