@@ -47,7 +47,9 @@ if (ob_get_level() == 0) ob_start();
     });
 
     $router->Get('/', function(Router $router) {
-        return $_SERVER['HTTP_HOST'];
+        $parser = new \Dependencies\Parsing\DirectoryParser(BasePath());
+
+        var_dump($parser->Isdirectory('asdsad/dasd'));
     })->name('home');
 
     $router->Put('/test', function (Router $router) {
