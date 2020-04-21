@@ -50,7 +50,7 @@ use Exception;
             $this->AddEvent(self::EVENT_ON_CONFIG);
         }
 
-        public function Start($_init_list) {
+        public function Start(array $_init_list = null) {
             $this->Config();
 
             if (!is_null($_init_list)) {
