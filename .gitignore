@@ -4,7 +4,8 @@ src/dependencies/collection
 
 src/dependencies/middleware
 
-src/application/application.php
+
+src/application/dispatcher.php
 
 src/Application/injection
 
