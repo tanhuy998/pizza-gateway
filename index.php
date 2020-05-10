@@ -40,10 +40,10 @@ if (ob_get_level() == 0) ob_start();
         return 'put method';
     });
 
-    $router->Domain('test.localhost', function (Router $router) {
+    $router->Domain('{test}.localhost', function (Router $router) {
 
-        $router->Get('/', function () {
-            echo 'subdomain route /';
+        $router->Get('/', function (Request $req) {
+            return $req->Host();
         });
 
         $router->Get('/domain', function () {

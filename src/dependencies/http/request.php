@@ -64,6 +64,11 @@ use Exception;
             return $this->Header('User-Agent');
         }
 
+        public function Host() {
+
+            return $this->Server('HTTP_HOST');
+        }
+
         public function Header(string $_name) {
             $_name = strtoupper($_name);
             $_name = str_replace('-', '_', $_name);
