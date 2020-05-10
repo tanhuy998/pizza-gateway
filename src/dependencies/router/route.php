@@ -14,6 +14,10 @@ class Route {
 
         private $actions;
 
+        private $domains;
+
+        private $paramDomains;
+
         private $path;
 
         private $name;
@@ -25,6 +29,8 @@ class Route {
         protected $params;
 
         private $domainParams;
+
+
 
         public function __construct(Router &$_router, string $_method, string $_path, $_action = null, $_domain = self::DOMAIN_DEFAULT) {
             $this->path = $_path;
@@ -38,9 +44,11 @@ class Route {
             $this->actions = [];
 
             if ($_action !== null) {
-                $this->ValidateAction($_action);
+                // $this->ValidateAction($_action);
 
-                $this->actions[$_domain] = $_action;
+                // $this->actions[$_domain] = $_action;
+
+                $this->SetAction($_action, $_domain);
             }
 
             preg_match_all('/\{(.+?)\}/', $_path, $matches);
@@ -51,13 +59,20 @@ class Route {
 
         public function Action($_domain = self::DOMAIN_DEFAULT) {
 
-            if ($_domain === self::DOMAIN_DEFAULT) return $this->actions[self::DOMAIN_DEFAULT];
+            if ($_domain === self::DOMAIN_DEFAULT) return $this->domains[self::DOMAIN_DEFAULT];
 
-            foreach ($this->actions as $pattern => $action) {
+            if (isset($this->domains[$_domain])) {
+
+                $adress = $this->domains[$_domain];
+
+                return $this->actions[$adress];
+            }
+
+            foreach ($this->paramDomains as $pattern => $adress) {
 
                 if ($this->router->parser->PatternMatch($_domain, $pattern)) {
 
-                    return $action;
+                    return $this->actions[$adress];
                     //return $this->actions[$pattern];
                 }
             }
@@ -78,9 +93,25 @@ class Route {
 
             $this->ValidateAction($_action);
 
-            if (!isset($this->actions[$_domain])) {
+            if (preg_match('/\{(.+?)\}/', $_domain)) {
+
+                if (!isset($this->paramDomains[$_domain])) {
+
+                    $this->actions[] = &$_action;
+
+                    $this->paramDomains[$_domain] = count($this->actions) - 1; 
+                }
+
+                return;
+            }
+
+            if (!isset($this->domains[$_domain])) {
                 
-                $this->actions[$_domain] = $_action;
+                $this->actions[] = &$_action;
+
+                $this->domains[$_domain] = count($this->actions) - 1;
+
+                return;
             }
         }
 

@@ -51,6 +51,13 @@ if (ob_get_level() == 0) ob_start();
         });
     });
 
+    $router->Domain('dev.localhost', function (Router $router) {
+
+        $router->Get('/', function () {
+            return 'dev';
+        });
+    });
+
 
     $respone = $router->Handle($request);
 
