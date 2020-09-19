@@ -2,6 +2,7 @@
     namespace Application;
 
     use Application\Container\DIContainer as DIContainer;
+    use Application\DirectoryManager as DirectoryManager;
     use Dependencies\Http;
     use Dependencies\Router\Route;
     use Dependencies\Router\Router as Router;
@@ -21,7 +22,7 @@ use Exception;
         public const EVENT_ON_RESPONE = 'onRespone';
 
         private $appState;
-        private $directories;
+        public $dir;
         protected $basePath;
 
         private $arbitraries;
@@ -29,16 +30,16 @@ use Exception;
         public $container;
         public $router;
 
-        private $parser;
+        //private $parser;
         private $request;
 
         public function __construct(Request $_request) {
 
             $this->basePath = BasePath();   
             $this->request = $_request;
-            $this->directories = [];
+            $this->dir = new DirectoryManager($this->basePath);
             $this->arbitraries = [];
-            $this->parser = new DirectoryParser();
+            //$this->parser = new DirectoryParser();
             $this->appState = self::APP_PENDING;
             
             $this->container = DIContainer::GetInstance();
@@ -92,54 +93,31 @@ use Exception;
                 $this->container->Bind($abstract, $concrete);
             }
         }
-        
-        public function BindDir(string $_name, string $_path) {
-            
-            $parser = $this->parser;
 
-            if ($parser->Isdirectory($_path)) {
-                $this->directories[$_name] = $_path;
-            }
-            
-        }
+        // public function File(string $_file_name) {
 
-        public function HasDir(string $_name) {
-            return isset($this->directories[$_name]);
-        }
+        //     $parser = $this->parser;
 
-        public function File(string $_file_name) {
+        //     $dir = null;
 
-            $parser = $this->parser;
+        //     if ($parser->Isdirectory($_file_name)) {
+        //         $dir = $_file_name;
+        //     } 
+        //     else if ($this->HasDir($_file_name)) {
+        //         $dir = $this->directories[$_file_name];
+        //     }
 
-            $dir = null;
+        //     if (is_null($dir)) {
+        //         throw new Exception();
+        //     } 
 
-            if ($parser->Isdirectory($_file_name)) {
-                $dir = $_file_name;
-            } 
-            else if ($this->HasDir($_file_name)) {
-                $dir = $this->directories[$_file_name];
-            }
+        //     $file_content = file_get_contents($dir);
 
-            if (is_null($dir)) {
-                throw new Exception();
-            } 
+        //     if ($file_content === false) throw new Exception();
 
-            $file_content = file_get_contents($dir);
+        //     return $file_content;
+        // }
 
-            if ($file_content === false) throw new Exception();
-
-            return $file_content;
-        }
-
-        public function Directory(string $_name) {
-
-            if (isset($this->directories[$_name])) {
-
-                return $this->basePath.$this->directories[$_name];
-            }
-
-            return null;
-        }   
 
         public function BindArbitrary($_param1, $_param2 = null) {
             if (is_string($_param1) && is_string($_param2)) {
