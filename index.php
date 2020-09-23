@@ -27,34 +27,34 @@ if (ob_get_level() == 0) ob_start();
 
     $router = $app->router;
 
-    $router->Get('/c', function (Router $router) {
+    // $router->Get('/c', function (Router $router) {
         
-    });
+    // });
 
-    $router->Get('/', function(Request $request) {
-        return $request->Method();
-    })->name('home');
+    // $router->Get('/', function(Request $request) {
+    //     return $request->Method();
+    // })->name('home');
 
-    $router->Put('/test', function (Router $router) {
+    // $router->Put('/test', function (Router $router) {
 
-        return 'put method';
-    });
+    //     return 'put method';
+    // });
 
-    $router->Domain('{test}.localhost', function (Router $router) {
+    // $router->Domain('{test}.localhost', function (Router $router) {
 
-        $router->Get('/', function (Request $req) {
-            return $req->Host();
-        });
+    //     $router->Get('/', function (Request $req) {
+    //         return $req->Host();
+    //     });
 
-        $router->Get('/domain', function () {
+    //     $router->Get('/domain', function () {
 
-        });
-    });
+    //     });
+    // });
 
     $router->Domain('dev.localhost', function (Router $router) {
 
-        $router->Get('/', function () {
-            return 'dev';
+        $router->AllVerbs('/[a-z]*', function (Request $_request) {
+            return 'dev'.$_request->Method();
         });
     });
 

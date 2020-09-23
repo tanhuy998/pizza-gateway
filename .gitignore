@@ -10,7 +10,11 @@ src/Application/injection
 
 boot/startup.php
 
+src/dependencies/pipeline
 
+src/dependencies/contextual
+
+routes.php
 
 public/
 

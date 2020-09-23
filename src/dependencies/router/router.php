@@ -116,6 +116,17 @@ class Router extends EventClient {
             return $send_route;
         }
 
+        public function AllVerbs(string $_pattern , $_action) {
+            
+            $supported_verbs = array_keys($this->corners);
+
+            foreach ($supported_verbs as $verb) {
+                
+                $this->__call($verb, [$_pattern, $_action]);
+            }
+
+        }
+
         private function CheckForRoute(string $_method, string $_path) {
 
             $route_list = $this->OrientateCorner($_method);
