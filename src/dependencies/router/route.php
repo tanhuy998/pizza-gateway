@@ -43,6 +43,10 @@ class Route {
 
             $this->actions = [];
 
+            $this->domains = [];
+
+            $this->paramDomains = [];
+
             if ($_action !== null) {
                 // $this->ValidateAction($_action);
 
@@ -58,18 +62,18 @@ class Route {
         }
 
         public function Action($_domain = self::DOMAIN_DEFAULT) {
-
+            
             if ($_domain === self::DOMAIN_DEFAULT) return $this->domains[self::DOMAIN_DEFAULT];
-
+            
             if (isset($this->domains[$_domain])) {
-
+                
                 $adress = $this->domains[$_domain];
 
                 return $this->actions[$adress];
             }
-
+            
             foreach ($this->paramDomains as $pattern => $adress) {
-
+                
                 if ($this->router->parser->PatternMatch($_domain, $pattern)) {
 
                     return $this->actions[$adress];
@@ -90,16 +94,17 @@ class Route {
         }
 
         public function SetAction($_action, $_domain = self::DOMAIN_DEFAULT) {
-
+            
             $this->ValidateAction($_action);
 
             if (preg_match('/\{(.+?)\}/', $_domain)) {
-
+                
                 if (!isset($this->paramDomains[$_domain])) {
-
+                    
                     $this->actions[] = &$_action;
 
                     $this->paramDomains[$_domain] = count($this->actions) - 1; 
+                    
                 }
 
                 return;
