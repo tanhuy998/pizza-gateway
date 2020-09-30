@@ -32,7 +32,7 @@
 
         echo 1;
     });
-
+    echo 'debug';
     $router->AllVerbs('/[^*.]*', function(Request $_request) {
 
         $url = $_request->FullUrl();
@@ -42,7 +42,7 @@
         if ($path_part[1] === 'admin') {
 
         }
-        echo 'debug';
+        
         $headers = getallheaders();
         $ch = curl_init('localhost/pizza/public/admin/category');
         $method = $_request->Method();
