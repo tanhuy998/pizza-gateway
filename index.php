@@ -42,7 +42,7 @@
         if ($path_part[1] === 'admin') {
 
         }
-
+        echo 'debug';
         $headers = getallheaders();
         $ch = curl_init('localhost/pizza/public/admin/category');
         $method = $_request->Method();
