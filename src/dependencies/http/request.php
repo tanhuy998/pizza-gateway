@@ -98,9 +98,9 @@ use Exception;
             
             $path = preg_replace('/^(\/)+/', '', $path);
 
-            $path = '/'.$path;
-            echo $path;
             $path = preg_replace('/(\/)+$/', '', $path);
+
+            $path = '/'.$path;
             echo $path;
             return $path;
         }
