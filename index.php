@@ -15,7 +15,8 @@
     use Dependencies\Notification\EventClient as EventClient;
     use Dependencies\Parsing\URLParser;
 
-if (ob_get_level() == 0) ob_start();
+    if (ob_get_level() == 0) ob_start();
+    ini_set("allow_url_fopen", true);
     
     header('Access-Control-Allow-Origin: *');
 
@@ -27,43 +28,57 @@ if (ob_get_level() == 0) ob_start();
 
     $router = $app->router;
 
-    $router->Get('/c', function (Request $_request) {
-        return $_request->Route()->GetUriPattern();
+    $router->AllVerbs('/admin/[^*.]*', function(Request $_request) {
+
+        echo 1;
     });
 
-    $router->Get('/', function(Request $request) {
-        return $request->Method();
-    })->name('home');
+    $router->AllVerbs('/[^*.]*', function(Request $_request) {
 
-    $router->Put('/test', function (Router $router) {
+        $url = $_request->FullUrl();
+        
+        $path_part = explode('/', $url);
 
-        return 'put method';
-    });
+        if ($path_part[1] === 'admin') {
 
-    $router->Domain('{test}.localhost', function (Router $router) {
+        }
 
-        $router->Get('/', function (Request $req) {
-            return $req->Host();
-        });
+        $headers = getallheaders();
+        $ch = curl_init('localhost/pizza/public/admin/category');
+        $method = $_request->Method();
+        $request_body = file_get_contents('php://input');
+        var_dump($request_body);
+        //curl_setopt($ch, CURLOPT_URL, 'https://localhost/pizza/public/admin/category');
 
-        $router->Get('/domain', function () {
+        $option = [
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_HEADER => TRUE,
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_POSTFIELDS => $request_body,
+            CURLOPT_FOLLOWLOCATION => true,
+        ];
+        
+        //curl_setopt_array($ch, $option);
+        $hd = [];
 
-        });
-    });
+        foreach ($headers as $name => $value) {
+        
+            $hd[] = $name.': '.$value;
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $hd);
+        curl_setopt_array($ch, $option);
 
-    $router->Domain('dev.localhost', function (Router $router) {
+        $respone = curl_exec($ch);
+        
+        
 
-        // $router->AllVerbs('/[a-z]*', function (Request $_request) {
-        //     return 'dev'.$_request->Method();
-        // });
-
-        $router->Get('/', function (Request $_request) {
-            return 'dev'.$_request->Method();
-        });
+        curl_close($ch);
     });
 
 
     $respone = $router->Handle($request);
+
+    $respone->Header('Content-Type', 'application/json');
 
     $respone->send();
     
