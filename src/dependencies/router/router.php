@@ -205,9 +205,9 @@ class Router extends EventClient {
             $request_path = $this->parser->RemoveSubrootDirectory($_request->Path());
 
             foreach ($route_list as $pattern => $route) {
-                
+                echo $route->GetUriPattern();
                 if ($this->parser->PatternMatch($request_path, $pattern)) {
-                    echo $route->GetUriPattern();
+                    
                     return $route;
                 }
             }
