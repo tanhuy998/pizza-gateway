@@ -24,7 +24,7 @@
     $request = Dependencies\HttpHandler\HttpHandler::Request();
 
     $app = new \Application\Application($request);
-
+    
     $app->start();
 
     $router = $app->router;
@@ -33,7 +33,7 @@
 
         echo 1;
     });
-    echo 'debug';
+    
     $router->AllVerbs('/[^*.]*', function(Request $_request) {
 
         $url = $_request->FullUrl();

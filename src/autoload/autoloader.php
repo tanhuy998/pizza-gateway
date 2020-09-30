@@ -47,13 +47,13 @@
             }
             else {
                 $full_file_path_name = $base_path.'/src/'.$_className.'.php';
-                //echo $full_file_path_name;
+                echo $full_file_path_name;
                 if (file_exists($full_file_path_name)) {
                     require_once($full_file_path_name);
                 }
                 else {
-                    echo $_className;
-                    throw new \Autoload\ClassNotDefinedException($_className);
+                    
+                    throw new Autoload\ClassNotDefinedException($_className);
                 }
             }
         }
