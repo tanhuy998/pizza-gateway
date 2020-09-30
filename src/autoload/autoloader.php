@@ -47,7 +47,7 @@
             }
             else {
                 $full_file_path_name = $base_path.'/src/'.$_className.'.php';
-                echo $full_file_path_name;
+                
                 if (file_exists($full_file_path_name)) {
                     require_once($full_file_path_name);
                 }
@@ -79,6 +79,11 @@
          */
         public static function Load() {
             spl_autoload_register(function (string $_className) {
+                
+                if (PHP_OS != 'Windows') {
+                    $_className = strtolower($_className);
+                }
+
                 $class_map = self::GetLoader()->map;
                 //var_dump($class_map);
                 //$class_map = $class_map->$map;

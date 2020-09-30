@@ -1,6 +1,6 @@
 <?php
     putenv('BASE_PATH='.dirname(__DIR__));
-    echo dirname(__DIR__);
+    
     if (!function_exists('BasePath')) {
         /**
         *  Base Path is the directory that the project is placed
