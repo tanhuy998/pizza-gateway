@@ -44,18 +44,43 @@
 
             if (file_exists($full_file_path_name)) {
                 require_once($full_file_path_name);
+
+                return;
             }
-            else {
-                $full_file_path_name = $base_path.'/src/'.$_className.'.php';
+
+            $full_file_path_name = $base_path.'/'.strtolower($_className).'.php';
+
+            if (file_exists($full_file_path_name)) {
+                require_once($full_file_path_name);
+
+                return; 
+            }
+
+            $full_file_path_name = $base_path.'/src/'.$_className.'.php';
+
+            if (file_exists($full_file_path_name)) {
+                require_once($full_file_path_name);
+
+                return;
+            }
+
+            $full_file_path_name = $base_path.'/src/'.strtolower($_className).'.php';
+
+            if (file_exists($full_file_path_name)) {
+                require_once($full_file_path_name);
+
+                return;
+            }
+
+            throw new Autoload\ClassNotDefinedException($_className);
+            // else {
                 
-                if (file_exists($full_file_path_name)) {
-                    require_once($full_file_path_name);
-                }
-                else {
+            
+            //     else {
                     
-                    throw new Autoload\ClassNotDefinedException($_className);
-                }
-            }
+            //         throw new Autoload\ClassNotDefinedException($_className);
+            //     }
+            // }
         }
 
 
@@ -79,10 +104,6 @@
          */
         public static function Load() {
             spl_autoload_register(function (string $_className) {
-                
-                if (PHP_OS != 'Windows') {
-                    $_className = strtolower($_className);
-                }
 
                 $class_map = self::GetLoader()->map;
                 //var_dump($class_map);
