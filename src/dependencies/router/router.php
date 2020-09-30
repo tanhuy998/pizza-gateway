@@ -207,7 +207,7 @@ class Router extends EventClient {
             foreach ($route_list as $pattern => $route) {
                 
                 if ($this->parser->PatternMatch($request_path, $pattern)) {
-                    
+                    echo $route->GetUriPattern();
                     return $route;
                 }
             }
