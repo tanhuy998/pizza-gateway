@@ -48,7 +48,7 @@
                 return;
             }
 
-            $full_file_path_name = $base_path.'/'.strtolower($_className).'.php';
+            $full_file_path_name = $base_path.'/src/'.$_className.'.php';
 
             if (file_exists($full_file_path_name)) {
                 require_once($full_file_path_name);
@@ -56,7 +56,7 @@
                 return; 
             }
 
-            $full_file_path_name = $base_path.'/src/'.$_className.'.php';
+            $full_file_path_name = $base_path.'/'.strtolower($_className).'.php';
 
             if (file_exists($full_file_path_name)) {
                 require_once($full_file_path_name);
