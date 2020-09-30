@@ -17,6 +17,7 @@
 
     if (ob_get_level() == 0) ob_start();
     ini_set("allow_url_fopen", true);
+    ini_set('display_errors', 1);
     
     header('Access-Control-Allow-Origin: *');
 
