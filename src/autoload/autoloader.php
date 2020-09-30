@@ -52,6 +52,7 @@
                     require_once($full_file_path_name);
                 }
                 else {
+                    echo $_className;
                     throw new \Autoload\ClassNotDefinedException($_className);
                 }
             }
