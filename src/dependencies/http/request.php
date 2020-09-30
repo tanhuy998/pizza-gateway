@@ -95,7 +95,7 @@ use Exception;
 
             $last_char = substr($path, strlen($path) - 1, 1);
             $first_char = substr($path, 0, 1);
-
+            echo $path;
             $path = preg_replace('/^(\/)+/', '', $path);
 
             $path = '/'.$path;
