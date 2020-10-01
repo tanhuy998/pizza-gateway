@@ -107,8 +107,10 @@ class Respone {
 
             array_walk($this->headers, function($_value, $_key) use($container) {
                 $header_content = $_key.': '.$_value;
-
-                $container->call('header', [$header_content]);
+                //echo $header_content;
+                // $container->call('header', [$header_content]);
+                header($header_content);
+                //var_dump($header_content);
             });
         }
 
