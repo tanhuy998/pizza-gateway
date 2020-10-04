@@ -14,6 +14,7 @@
     use Dependencies\HttpHandler\HttpHandler as HttpHandler;
     use Dependencies\Notification\EventClient as EventClient;
     use Dependencies\Parsing\URLParser;
+    use Dependencies\Http\HttpClient;
 
     if (ob_get_level() == 0) ob_start();
     ini_set("allow_url_fopen", true);
@@ -33,20 +34,32 @@
 
     //     echo 1;
     // });
+
+    $router->Get('/category', function(Request $_request) {
+       
+        $proxy = new HttpClient();
+
+        $respone = $proxy->Forward($_request)
+                        ->To('piz-api.herokuapp.com/public/admin')
+                        ->then(function ($res) {
+
+                            var_dump($res);
+                        })->return();
+
+        return $respone;
+    });
     
     $router->AllVerbs('/[^*.]*', function(Request $_request, Respone $_response) {
 
         $req_url = $_request->Uri();
         $url = '';
         $path_part = explode('/', $req_url);
-        var_dump($path_part);
+        
         if ($path_part[1] === 'admin') {
             $url = 'piz-api.herokuapp.com/public'.$_request->Uri();
             
-            echo 1;
         }
 
-        var_dump($url);
         
         $headers = getallheaders();
         $ch = curl_init($url);
@@ -85,7 +98,7 @@
         
         $output = $respone;
 
-// close curl resource to free up system resources
+        // close curl resource to free up system resources
         //curl_close($ch);
 
         $headers = [];
