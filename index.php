@@ -43,9 +43,10 @@
         if ($path_part[1] === 'admin') {
             $url = 'piz-api.herokuapp.com/public'.$_request->Uri();
             
+            echo 1;
         }
 
-        echo $url;
+        var_dump($url);
         
         $headers = getallheaders();
         $ch = curl_init($url);
