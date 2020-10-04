@@ -39,7 +39,7 @@
         $req_url = $_request->Uri();
         $url = '';
         $path_part = explode('/', $req_url);
-
+        var_dump($path_part);
         if ($path_part[1] === 'admin') {
             $url = 'piz-api.herokuapp.com/public'.$_request->Uri();
             
