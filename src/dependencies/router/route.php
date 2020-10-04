@@ -56,7 +56,7 @@ class Route {
             }
 
             preg_match_all('/\{(.+?)\}/', $_path, $matches);
-
+            //var_dump($matches);
             $this->ValidateParameters($matches[1]);
             $this->params = $matches[1];
         }
@@ -90,7 +90,7 @@ class Route {
 
         public function HasParameter(): bool {
 
-            return (!is_null($this->params) || !empty($this->params));
+            return (!is_null($this->params) && !empty($this->params));
         }
 
         public function SetAction($_action, $_domain = self::DOMAIN_DEFAULT) {

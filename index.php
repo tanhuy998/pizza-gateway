@@ -29,27 +29,29 @@
 
     $router = $app->router;
 
-    $router->AllVerbs('/admin/[^*.]*', function(Request $_request) {
+    // $router->AllVerbs('/admin(/[^*.]*)*', function(Request $_request) {
 
-        echo 1;
-    });
+    //     echo 1;
+    // });
     
     $router->AllVerbs('/[^*.]*', function(Request $_request, Respone $_response) {
 
-        $url = $_request->FullUrl();
-        
-        $path_part = explode('/', $url);
+        $req_url = $_request->Uri();
+        $url = '';
+        $path_part = explode('/', $req_url);
 
         if ($path_part[1] === 'admin') {
-
+            $url = 'piz-api.herokuapp.com/public'.$_request->Uri();
+            
         }
         
         $headers = getallheaders();
-        $ch = curl_init('piz-api.herokuapp.com/public/admin/category');
+        $ch = curl_init($url);
         $method = $_request->Method();
         $request_body = file_get_contents('php://input');
         //curl_setopt($ch, CURLOPT_URL, 'https://localhost/pizza/public/admin/category');
-
+        
+        
         $option = [
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HEADER => TRUE,
@@ -104,7 +106,7 @@
         $body = substr($respone, $headers_size);
 
         curl_close($ch);
-
+        
         $_response->Render($body, Respone::RENDER_OVERIDE);
         // var_dump($body);
         
@@ -118,11 +120,11 @@
         
     //echo 1;
     });
-
+    
 
     $respone = $router->Handle($request);
 
-    $respone->Header('Content-Type', 'application/json; charset=UTF-8');
+    //$respone->Header('Content-Type', 'application/json; charset=UTF-8');
 
     $respone->send();
     

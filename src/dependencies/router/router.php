@@ -191,7 +191,18 @@ class Router extends EventClient {
             }
 
             $_request->SetRoute($direct_route);
+            //var_dump($direct_route->HasParameter());
+            $sub_rootdir = '\/'.SubRootDir();
 
+            $full_uri = $_request->Path();
+
+            $regex = '/^'.$sub_rootdir.'/';
+            
+            $uri = preg_replace($regex, '', $full_uri);
+            //$uri = str_replace($sub_rootdir, '', $full_uri);
+
+            $_request->SetUri($uri);
+            
             return $this->ResolveRespone($_request);
         }
 
@@ -274,9 +285,10 @@ class Router extends EventClient {
         }
 
         private function LoadController($_action, Request $_request) {
-
-            $route_args = $this->parser->ParseUriParameters($_request);
-
+            //var_dump($_request->Route()->GetUriPattern());
+            $route_args = $_request->Route()->HasParameter() ?
+                            $this->parser->ParseUriParameters($_request) : [];
+            
             if ($_action instanceof Closure) {
 
                 $reflection = new ReflectionFunction($_action);

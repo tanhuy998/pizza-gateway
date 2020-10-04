@@ -22,7 +22,7 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{HTTP_HOST} ^([\w\-]+)\.([\w\-]+(\.[\w]+){0,1}) [NC] 
 
-RewriteRule ^((?s).*)$ /index.php?_uri=/$1&_subdomain=%1&_host=%2 [QSA,L]
+RewriteRule ^((?s).*)$ index.php?_uri=/$1&_subdomain=%1&_host=%2 [QSA,L]
 ##################################################
 
 
@@ -31,7 +31,7 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{HTTP_HOST} ^([\w\-]+(\.[\w]+){0,1}) [NC] 
 
-RewriteRule ^((?s).*)$ /index.php?_uri=/$1&_host=%1 [QSA,L]
+RewriteRule ^((?s).*)$ index.php?_uri=/$1&_host=%1 [QSA,L]
 #####################################################3
 
 #RewriteCond %{HTTP_HOST} ^(^.*)\.(.+)

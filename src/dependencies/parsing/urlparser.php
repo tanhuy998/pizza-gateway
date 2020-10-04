@@ -19,7 +19,7 @@
 
             $keys = preg_replace('/\{|\}/', '', $route_uri_pattern);
             $keys = explode('/', $keys);
-
+            
             $values = explode('/', $request_real_uri);
             
             $arr = array_combine($keys, $values);

@@ -25,6 +25,7 @@ use Exception;
 
         private $route;
 
+        private $uri;
         private $error;
         private $middlewaresMessage;
 
@@ -80,6 +81,20 @@ use Exception;
 
         public function Url() {
             return $_SERVER['HTTP_HOST'].$this->Path();
+        }
+
+        public function Uri() {
+
+            return $this->uri;
+        }
+
+        public function SetUri(string $_uri): bool {
+
+            if (!is_null($this->uri)) return false;
+            
+            $this->uri = $_uri;
+
+            return true;
         }
 
         public function FullUrl() {
