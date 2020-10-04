@@ -44,6 +44,8 @@
             $url = 'piz-api.herokuapp.com/public'.$_request->Uri();
             
         }
+
+        echo $url;
         
         $headers = getallheaders();
         $ch = curl_init($url);
