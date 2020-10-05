@@ -92,7 +92,11 @@ use Exception;
 
             if (!is_null($this->uri)) return false;
             
-            $this->uri = $_uri;
+            $uri = preg_replace('/^\/*/', '', $_uri);
+
+            $uri = '/'.$uri;
+
+            $this->uri = $uri;
 
             return true;
         }
