@@ -36,7 +36,7 @@
     // });
     echo 2;
     $router->AllVerbs('/admin[^*.]*', function(Request $_request, Respone $_response) {
-        echo 3;
+        
         $proxy = new HttpClient();
 
         $respone_data = $proxy->Forward($_request)
@@ -45,7 +45,7 @@
 
                             //var_dump($res);
                         })->return();
-
+        var_dump($respone_data);
         $headers = $respone_data['headers'];
         $body = $respone_data['body'];
         
@@ -60,7 +60,7 @@
         }
 
         $_response->Render($body, Respone::RENDER_OVERIDE);
-        echo $body;
+        
     });
 
     $router->Allverbs('/[^*.]*', function() {
