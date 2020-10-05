@@ -45,7 +45,7 @@
 
                             //var_dump($res);
                         })->return();
-        var_dump($respone_data);
+        
         $headers = $respone_data['headers'];
         $body = $respone_data['body'];
         

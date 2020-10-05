@@ -77,7 +77,7 @@ class HttpClient {
             $endpoint = preg_replace('/\/+$/', '', $_endpoint);
 
             $url = $endpoint.$uri;
-
+            var_dump($url);
             $headers = getallheaders();
             $ch = curl_init($url);
             $method = $_request->Method();
