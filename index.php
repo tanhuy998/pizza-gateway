@@ -64,7 +64,7 @@
     });
 
     $router->Allverbs('/[^*.]*', function() {
-
+        echo 1;
     }); 
     
     // $router->AllVerbs('/[^*.]*', function(Request $_request, Respone $_response) {
