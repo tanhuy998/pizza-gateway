@@ -34,9 +34,9 @@
 
     //     echo 1;
     // });
-
+    echo 2;
     $router->AllVerbs('/admin[^*.]*', function(Request $_request, Respone $_response) {
-       
+        echo 3;
         $proxy = new HttpClient();
 
         $respone_data = $proxy->Forward($_request)
