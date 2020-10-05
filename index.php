@@ -60,11 +60,11 @@
         }
 
         $_response->Render($body, Respone::RENDER_OVERIDE);
-
+        echo $body;
     });
 
     $router->Allverbs('/[^*.]*', function() {
-        
+
     }); 
     
     // $router->AllVerbs('/[^*.]*', function(Request $_request, Respone $_response) {
