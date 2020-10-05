@@ -98,20 +98,24 @@ class Respone {
 
         public function Header(string $_key, $_value) {
             $this->headers[$_key] = $_value;
-
+            //var_dump($_value);
             return $this;
         }
 
         private function SendHeader() {
             $container = $this->container;
 
+            //var_dump($this->header);
             array_walk($this->headers, function($_value, $_key) use($container) {
                 $header_content = $_key.': '.$_value;
                 //echo $header_content;
                 // $container->call('header', [$header_content]);
                 header($header_content);
+                //var_dump($_value);
                 //var_dump($header_content);
             });
+
+            
         }
 
         public function Status(int $_code = null) {
@@ -142,7 +146,7 @@ class Respone {
 
             if (is_string($_content)) {
                 $content = $_content;
-                $this->Header('Content-Type', 'text/HTML;charset=utf-8');
+                //$this->Header('Content-Type', 'text/HTML;charset=utf-8');
             }
 
             if (isset($content)) {
