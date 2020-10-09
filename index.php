@@ -62,8 +62,31 @@
         
     });
 
-    $router->Allverbs('/[^*.]*', function() {
-        echo 1;
+    $router->Allverbs('/[^*.]*', function(Request $_request, Respone $_response) {
+
+        $proxy = new HttpClient();
+
+        $respone_data = $proxy->Forward($_request)
+                        ->To('ec2-13-229-108-245.ap-southeast-1.compute.amazonaws.com:8080')
+                        ->then(function ($res) {
+
+                            //var_dump($res);
+                        })->return();
+        
+        $headers = $respone_data['headers'];
+        $body = $respone_data['body'];
+        
+        foreach($headers as $key => $value) {
+            // echo $key.'<br>';
+            
+            if ($key === 'Transfer-Encoding') continue;
+            if ($key === '') break;
+            //var_dump($value);
+            $_response->header($key, $value);
+            //echo $value;
+        }
+
+        $_response->Render($body, Respone::RENDER_OVERIDE);
     }); 
     
     // $router->AllVerbs('/[^*.]*', function(Request $_request, Respone $_response) {
