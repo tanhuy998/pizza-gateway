@@ -39,7 +39,7 @@
         $proxy = new HttpClient();
 
         $respone_data = $proxy->Forward($_request)
-                        ->To('piz-api.herokuapp.com/public')
+                        ->To(getenv('APP_ADMIN'))
                         ->then(function ($res) {
 
                             //var_dump($res);
@@ -67,7 +67,7 @@
         $proxy = new HttpClient();
 
         $respone_data = $proxy->Forward($_request)
-                        ->To('ec2-13-229-108-245.ap-southeast-1.compute.amazonaws.com:8080')
+                        ->To(getenv('APP_CLIENT'))
                         ->then(function ($res) {
 
                             //var_dump($res);
